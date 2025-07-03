@@ -464,72 +464,83 @@ The project implements a comprehensive `.gitignore` configuration to ensure clea
 
 ```
 # Dependencies
-/node_modules
-/.pnp
-.pnp.js
+**/node_modules
+**/.pnp
+**/.pnp.js
 
 # Testing
-/coverage
+**/coverage
 
 # Production
-/build
+**/build
+**/dist
 
 # Misc
-.DS_Store
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+**/.DS_Store
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+**/.cursorignore
 
 # Debug logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
 
 # Editor directories and files
-.idea/
-.vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+**/.idea/
+**/.vscode/
+**/*.suo
+**/*.ntvs*
+**/*.njsproj
+**/*.sln
+**/*.sw?
 
 # Temporary files
-*.tmp
-*.temp
-.cache/
+**/*.tmp
+**/*.temp
+**/.cache/
 
 # Compiled output
-*.min.js
-*.min.css
+**/*.min.js
+**/*.min.css
 
 # Local environment variables
-.env*.local
+**/.env*.local
 
 # TypeScript
-*.tsbuildinfo
+**/*.tsbuildinfo
 
 # Optional npm cache directory
-.npm
+**/.npm
 
 # Optional eslint cache
-.eslintcache
+**/.eslintcache
 
 # Optional stylelint cache
-.stylelintcache
+**/.stylelintcache
 
 # Yarn Integrity file
-.yarn-integrity
+**/.yarn-integrity
 
 # Logs
-logs
-*.log
+**/logs
+**/*.log
 
 # Backup files
-*.bak
-*~
+**/*.bak
+**/*~
+
+# MongoDB data directory
+**/data/db
+
+# Redis dump file
+**/dump.rdb
+
+# Blockchain local development
+**/.chaindata
 ```
 
 This configuration provides several key benefits:
@@ -540,4 +551,19 @@ This configuration provides several key benefits:
 4. **Clean Workflow**: Ensures only essential source code is tracked, improving code review processes
 5. **Cross-Platform Compatibility**: Accounts for system-specific files (like .DS_Store) that shouldn't be shared
 
-The gitignore configuration is strategically designed to work with the project's build system and development workflow, ensuring that only the necessary source files are committed while generated files are rebuilt during deployment.
+#### Environment Variables Management
+
+The project follows best practices for managing environment variables:
+
+1. **No .env Files in Repository**: All `.env` files are excluded from version control to prevent exposure of sensitive information
+2. **Example Files Provided**: Each project component includes `.env.example` files with placeholder values as templates
+3. **Documentation**: Environment variables are clearly documented in the example files and project documentation
+4. **Global Pattern Matching**: The `.gitignore` uses `**/.env*` pattern to catch all environment files in any directory
+5. **Local Overrides**: Developers can create local environment files (`.env.local`) for development without risk of committing them
+
+This approach ensures that:
+
+- Sensitive credentials are never committed to the repository
+- New developers can quickly set up their environment using the example files
+- Different environments (development, staging, production) can use different configurations
+- Local development settings don't interfere with team collaboration
