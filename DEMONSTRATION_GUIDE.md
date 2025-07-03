@@ -392,6 +392,42 @@ flowchart TD
            IPFS & Blockchain
    ```
 
+### Smart Contract Interaction
+
+The ProofChain platform interacts with the `ProofChainMultiTokenVoting` smart contract deployed on the blockchain. This contract handles:
+
+1. **Content Registration**: When content is submitted, it's registered on the blockchain with voting deadlines
+2. **Multi-Token Staking**: Users can stake various cryptocurrencies to participate in voting
+3. **Commit-Reveal Voting**: The two-phase voting mechanism that prevents manipulation
+4. **Reward Distribution**: Automatic distribution of rewards to winning voters
+
+To demonstrate the smart contract functionality:
+
+1. **Contract Deployment**:
+
+   ```bash
+   cd contracts-hardhat
+   npx hardhat run scripts/deploy.js --network localhost
+   ```
+
+2. **Interacting with the Contract**:
+
+   - Use the frontend interface to submit content, commit votes, and reveal votes
+   - For direct contract interaction, use the Hardhat console:
+
+   ```bash
+   npx hardhat console --network localhost
+   > const ProofChain = await ethers.getContractFactory("ProofChainMultiTokenVoting")
+   > const contract = await ProofChain.attach("DEPLOYED_CONTRACT_ADDRESS")
+   > await contract.submitContent("ipfs://QmHash", 86400)
+   ```
+
+3. **Viewing Blockchain Events**:
+   - The contract emits events for all major actions (content submission, vote commitment, vote reveal, etc.)
+   - These events can be monitored through the frontend or using blockchain explorers
+
+### Mathematical Models Visualization
+
 ## Troubleshooting
 
 ### Common Issues

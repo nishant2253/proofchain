@@ -119,6 +119,46 @@ npm start
 
 8. Access the application at `http://localhost:3000`
 
+## 🔗 Blockchain Integration
+
+ProofChain integrates with Ethereum blockchain through the `ProofChainMultiTokenVoting` smart contract.
+
+### Smart Contract Features
+
+- **Multi-Token Support**: Vote using various cryptocurrencies (ETH, BTC, MATIC, etc.)
+- **Commit-Reveal Voting**: Two-phase voting system to prevent manipulation
+- **Quadratic Voting**: Prevents whale dominance using square root scaling
+- **Byzantine Fault Tolerance**: Requires 67% consensus for decisions
+- **Anti-Sybil Protection**: Uses merkle proofs for identity verification
+
+### Contract Setup
+
+1. Deploy the smart contract:
+
+```bash
+cd contracts-hardhat
+npm install
+npx hardhat compile
+npx hardhat run scripts/deploy.js --network <network-name>
+```
+
+2. Configure the frontend to connect to the deployed contract:
+
+```
+# In frontend/.env
+REACT_APP_CONTRACT_ADDRESS=<deployed-contract-address>
+REACT_APP_BLOCKCHAIN_NETWORK=<network-name>
+```
+
+### Testing the Contract
+
+Run the test suite to verify contract functionality:
+
+```bash
+cd contracts-hardhat
+npx hardhat test
+```
+
 ## 🔒 Commit-Reveal Voting System
 
 ProofChain implements a secure two-phase voting system:

@@ -131,6 +131,80 @@ docker build -t proofchain-frontend .
 docker run -d -p 8080:80 proofchain-frontend
 ```
 
+## Smart Contract Deployment
+
+The ProofChain platform requires the deployment of the `ProofChainMultiTokenVoting` smart contract to function properly.
+
+### Prerequisites
+
+- Access to an Ethereum network (mainnet, testnet, or local development network)
+- Private key with sufficient ETH for deployment
+- Merkle tree root for verified identities
+
+### Deployment Steps
+
+1. Configure environment variables:
+
+```
+# Create a .env file in the contracts-hardhat directory
+PRIVATE_KEY=your_private_key
+INFURA_API_KEY=your_infura_api_key
+ETHERSCAN_API_KEY=your_etherscan_api_key
+MERKLE_ROOT=0x...  # Merkle root for verified identities
+```
+
+2. Update the deployment network in hardhat.config.js:
+
+```javascript
+networks: {
+  goerli: {
+    url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    accounts: [process.env.PRIVATE_KEY]
+  },
+  // Add other networks as needed
+}
+```
+
+3. Deploy the contract:
+
+```bash
+cd contracts-hardhat
+npx hardhat run scripts/deploy.js --network goerli
+```
+
+4. Verify the contract on Etherscan:
+
+```bash
+npx hardhat verify --network goerli DEPLOYED_CONTRACT_ADDRESS "0x...merkleRoot"
+```
+
+5. Update the contract address in the frontend environment:
+
+```
+# In frontend/.env
+REACT_APP_CONTRACT_ADDRESS=0x...
+```
+
+### Post-Deployment Configuration
+
+After deploying the contract, you need to:
+
+1. Configure supported tokens with their price oracles:
+
+   ```javascript
+   await contract.addOrUpdateToken(
+     0, // TokenType.BTC
+     "0x...", // WBTC address
+     "0x...", // Chainlink BTC/USD price feed
+     8, // decimals
+     true, // isActive
+     1050, // bonusMultiplier (105%)
+     1e6 // minStakeAmount (0.01 BTC)
+   );
+   ```
+
+2. Set up any additional contract parameters as needed
+
 ## Environment Configuration
 
 For production, create a `.env.production` file with the appropriate settings:

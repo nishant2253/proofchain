@@ -188,6 +188,61 @@ Implemented a secure voting mechanism using a two-phase approach:
 
 This prevents front-running and other manipulation attacks by ensuring votes cannot be known until the reveal phase.
 
+### Smart Contract Development
+
+The ProofChain platform includes a smart contract for multi-token voting, located in the `contracts-hardhat` directory. This contract allows for voting using multiple token types and includes identity verification through Merkle proofs.
+
+### Directory Structure
+
+```
+contracts-hardhat/
+├── contracts/
+│   └── ProofChainMultiTokenVoting.sol
+├── scripts/
+│   └── deploy.js
+├── test/
+│   └── ProofChainMultiTokenVoting.js
+├── hardhat.config.js
+└── .env (not tracked in git)
+```
+
+### Smart Contract Implementation
+
+The project implements a sophisticated multi-token voting system through the `ProofChainMultiTokenVoting` smart contract with the following key features:
+
+1. **Multi-Token Support**: The contract accepts various cryptocurrencies (ETH, BTC, MATIC, FIL, USDC, USDT, DOT, SOL) for voting, with each token having configurable parameters:
+
+   - Price oracle integration via Chainlink
+   - Token-specific bonus multipliers
+   - Minimum stake requirements
+   - USD value conversion
+
+2. **Mathematical Protections**:
+
+   - **Quadratic Voting**: Implements sqrt(stakeValue) to prevent whale dominance
+   - **Byzantine Fault Tolerance**: Requires 67% consensus across token diversity
+   - **Stake-Time Weighting**: Prevents flash loan attacks by requiring minimum staking duration
+   - **Anti-Sybil Verification**: Uses merkle proofs to verify user identities
+
+3. **Security Features**:
+
+   - **Cross-Token Attack Detection**: Identifies coordinated attacks across multiple tokens
+   - **Temporal Analysis**: Detects suspicious voting patterns
+   - **ReentrancyGuard**: Prevents reentrancy attacks on stake/reward functions
+   - **Ownable**: Implements access control for administrative functions
+
+4. **Reward Distribution**:
+   - Winners receive their stake back plus a share of losers' stakes
+   - Reputation scoring system for long-term incentive alignment
+   - Token-specific reward distribution
+
+The contract underwent thorough testing and optimization:
+
+- Fixed constructor inheritance issue with OpenZeppelin's Ownable contract
+- Implemented comprehensive test suite for key functions
+- Gas optimization through efficient data structures and algorithms
+- Hardhat compilation and verification
+
 ### Quadratic Voting
 
 Implemented a quadratic voting system where:
