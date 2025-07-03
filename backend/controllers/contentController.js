@@ -1,14 +1,14 @@
-const asyncHandler = require('express-async-handler');
-const { 
-  createContent, 
-  getContentById, 
+const asyncHandler = require("express-async-handler");
+const {
+  createContent,
+  getContentById,
   getContentList,
   commitVote,
   revealVote,
-  getSavedCommitData
-} = require('../services/contentService');
-const { finalizeMultiTokenVoting } = require('../services/blockchainService');
-const { ethers } = require('ethers');
+  getSavedCommitData,
+} = require("../services/contentService");
+const { finalizeMultiTokenVoting } = require("../services/blockchainService");
+const { ethers } = require("ethers");
 
 /**
  * @desc    Create new content
@@ -17,32 +17,49 @@ const { ethers } = require('ethers');
  */
 const createNewContent = asyncHandler(async (req, res) => {
   const { title, description, contentType, votingDuration, tags } = req.body;
-  
+
   if (!title || !req.files || !req.files.file) {
     res.status(400);
-    throw new Error('Title and file are required');
+    throw new Error("Title and file are required");
   }
-  
+
   // Get file from request
   const file = req.files.file;
   const fileBuffer = file.data;
   const fileName = file.name;
-  
-  // Create signer from private key (in a real app, this would be from the frontend wallet)
-  // This is just for demo purposes
-  const provider = new ethers.providers.JsonRpcProvider(process.env.BLOCKCHAIN_RPC_URL);
-  const wallet = new ethers.Wallet(process.env.DEMO_PRIVATE_KEY, provider);
-  
+
+  let wallet;
+
+  // Check if blockchain is disabled
+  if (process.env.DISABLE_BLOCKCHAIN === "true") {
+    console.log("Blockchain disabled. Using mock wallet.");
+    wallet = {
+      address: "0x1234567890123456789012345678901234567890",
+    };
+  } else {
+    // Create signer from private key (in a real app, this would be from the frontend wallet)
+    // This is just for demo purposes
+    const provider = new ethers.providers.JsonRpcProvider(
+      process.env.BLOCKCHAIN_RPC_URL
+    );
+    wallet = new ethers.Wallet(process.env.DEMO_PRIVATE_KEY, provider);
+  }
+
   const contentData = {
     title,
     description,
     contentType,
     votingDuration: parseInt(votingDuration) || undefined,
-    tags: tags ? tags.split(',').map(tag => tag.trim()) : []
+    tags: tags ? tags.split(",").map((tag) => tag.trim()) : [],
   };
-  
-  const content = await createContent(contentData, fileBuffer, fileName, wallet);
-  
+
+  const content = await createContent(
+    contentData,
+    fileBuffer,
+    fileName,
+    wallet
+  );
+
   res.status(201).json(content);
 });
 
@@ -53,14 +70,14 @@ const createNewContent = asyncHandler(async (req, res) => {
  */
 const getContent = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  
+
   const content = await getContentById(id);
-  
+
   if (!content) {
     res.status(404);
-    throw new Error('Content not found');
+    throw new Error("Content not found");
   }
-  
+
   res.json(content);
 });
 
@@ -70,20 +87,22 @@ const getContent = asyncHandler(async (req, res) => {
  * @access  Public
  */
 const listContent = asyncHandler(async (req, res) => {
-  const { 
-    page = 1, 
-    limit = 10, 
-    sortBy = 'submissionTime', 
-    sortOrder = 'desc',
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = "submissionTime",
+    sortOrder = "desc",
     status,
     creator,
     contentType,
-    tags
+    tags,
   } = req.query;
-  
+
   // Parse tags if provided
-  const parsedTags = tags ? tags.split(',').map(tag => tag.trim()) : undefined;
-  
+  const parsedTags = tags
+    ? tags.split(",").map((tag) => tag.trim())
+    : undefined;
+
   const options = {
     page: parseInt(page),
     limit: parseInt(limit),
@@ -92,11 +111,11 @@ const listContent = asyncHandler(async (req, res) => {
     status,
     creator,
     contentType,
-    tags: parsedTags
+    tags: parsedTags,
   };
-  
+
   const contentList = await getContentList(options);
-  
+
   res.json(contentList);
 });
 
@@ -108,17 +127,27 @@ const listContent = asyncHandler(async (req, res) => {
 const commitVoteForContent = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { vote, confidence, tokenType, stakeAmount, merkleProof } = req.body;
-  
-  if (vote === undefined || !confidence || !tokenType || !stakeAmount || !merkleProof) {
+
+  if (
+    vote === undefined ||
+    !confidence ||
+    !tokenType ||
+    !stakeAmount ||
+    !merkleProof
+  ) {
     res.status(400);
-    throw new Error('Vote, confidence, tokenType, stakeAmount, and merkleProof are required');
+    throw new Error(
+      "Vote, confidence, tokenType, stakeAmount, and merkleProof are required"
+    );
   }
-  
+
   // Create signer from private key (in a real app, this would be from the frontend wallet)
   // This is just for demo purposes
-  const provider = new ethers.providers.JsonRpcProvider(process.env.BLOCKCHAIN_RPC_URL);
+  const provider = new ethers.providers.JsonRpcProvider(
+    process.env.BLOCKCHAIN_RPC_URL
+  );
   const wallet = new ethers.Wallet(process.env.DEMO_PRIVATE_KEY, provider);
-  
+
   const result = await commitVote(
     id,
     parseInt(vote),
@@ -128,7 +157,7 @@ const commitVoteForContent = asyncHandler(async (req, res) => {
     merkleProof,
     wallet
   );
-  
+
   res.json(result);
 });
 
@@ -140,17 +169,19 @@ const commitVoteForContent = asyncHandler(async (req, res) => {
 const revealVoteForContent = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { vote, confidence, salt } = req.body;
-  
+
   if (vote === undefined || !confidence || !salt) {
     res.status(400);
-    throw new Error('Vote, confidence, and salt are required');
+    throw new Error("Vote, confidence, and salt are required");
   }
-  
+
   // Create signer from private key (in a real app, this would be from the frontend wallet)
   // This is just for demo purposes
-  const provider = new ethers.providers.JsonRpcProvider(process.env.BLOCKCHAIN_RPC_URL);
+  const provider = new ethers.providers.JsonRpcProvider(
+    process.env.BLOCKCHAIN_RPC_URL
+  );
   const wallet = new ethers.Wallet(process.env.DEMO_PRIVATE_KEY, provider);
-  
+
   const result = await revealVote(
     id,
     parseInt(vote),
@@ -158,7 +189,7 @@ const revealVoteForContent = asyncHandler(async (req, res) => {
     salt,
     wallet
   );
-  
+
   res.json(result);
 });
 
@@ -169,14 +200,14 @@ const revealVoteForContent = asyncHandler(async (req, res) => {
  */
 const getSavedCommit = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  
+
   const commitData = await getSavedCommitData(id, req.user.address);
-  
+
   if (!commitData) {
     res.status(404);
-    throw new Error('No saved commit found for this content');
+    throw new Error("No saved commit found for this content");
   }
-  
+
   res.json(commitData);
 });
 
@@ -187,14 +218,16 @@ const getSavedCommit = asyncHandler(async (req, res) => {
  */
 const finalizeVoting = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  
+
   // Create signer from private key (in a real app, this would be from the frontend wallet)
   // This is just for demo purposes
-  const provider = new ethers.providers.JsonRpcProvider(process.env.BLOCKCHAIN_RPC_URL);
+  const provider = new ethers.providers.JsonRpcProvider(
+    process.env.BLOCKCHAIN_RPC_URL
+  );
   const wallet = new ethers.Wallet(process.env.DEMO_PRIVATE_KEY, provider);
-  
+
   const result = await finalizeMultiTokenVoting(id, wallet);
-  
+
   res.json(result);
 });
 
@@ -205,5 +238,5 @@ module.exports = {
   commitVoteForContent,
   revealVoteForContent,
   getSavedCommit,
-  finalizeVoting
+  finalizeVoting,
 };

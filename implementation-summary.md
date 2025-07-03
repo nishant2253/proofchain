@@ -1404,3 +1404,81 @@ To prevent similar issues in the future, we recommend:
    - Consider using docker-compose for standardized environments
 
 This fix resolved the content loading issues and allowed the application to properly communicate between frontend and backend components.
+
+## Content Submission Error Fix
+
+After fixing the API port configuration, we encountered another issue when submitting content. The frontend was showing a 500 Internal Server Error with the message "Cannot read properties of undefined (reading 'toHexString')".
+
+### Issue Analysis
+
+Upon investigation, we identified several issues in the content submission flow:
+
+1. **Error Details**:
+
+   ```
+   POST http://localhost:3000/api/content 500 (Internal Server Error)
+   AxiosError: Request failed with status code 500
+   message: "Cannot read properties of undefined (reading 'toHexString')"
+   ```
+
+2. **Root Cause**:
+
+   - The backend had `DISABLE_BLOCKCHAIN=true` in the environment variables
+   - However, the content controller was still creating an ethers.js wallet even when blockchain was disabled
+   - When the wallet object was passed to the blockchain service, it tried to use ethers.js methods on a mock object
+
+3. **Missing Configuration**:
+   - The `DEMO_PRIVATE_KEY` environment variable was missing from the backend .env file
+   - This caused the wallet creation to fail when attempting to submit content
+
+### Implementation Fix
+
+We implemented a two-part solution to address this issue:
+
+1. **Added Missing Environment Variable**:
+
+   ```bash
+   echo 'DEMO_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' >> backend/.env
+   ```
+
+   This private key is the default first account in Hardhat's local development environment.
+
+2. **Updated Content Controller to Handle Blockchain Disabled Mode**:
+
+   ```javascript
+   // Check if blockchain is disabled
+   if (process.env.DISABLE_BLOCKCHAIN === "true") {
+     console.log("Blockchain disabled. Using mock wallet.");
+     wallet = {
+       address: "0x1234567890123456789012345678901234567890",
+     };
+   } else {
+     // Create signer from private key
+     const provider = new ethers.providers.JsonRpcProvider(
+       process.env.BLOCKCHAIN_RPC_URL
+     );
+     wallet = new ethers.Wallet(process.env.DEMO_PRIVATE_KEY, provider);
+   }
+   ```
+
+3. **Updated Content Service Documentation**:
+   - Updated JSDoc comments to clarify that the signer parameter can be either an ethers.js signer or a mock wallet
+   - This ensures future developers understand the dual nature of this parameter
+
+### Benefits of the Fix
+
+1. **Robust Development Mode**:
+
+   - The application now works correctly in both blockchain-enabled and blockchain-disabled modes
+   - Developers can test content submission without requiring a blockchain connection
+
+2. **Improved Error Handling**:
+
+   - The system gracefully handles the absence of blockchain functionality
+   - Prevents cascading errors from undefined ethers.js methods
+
+3. **Better Documentation**:
+   - Updated code comments clarify the expected parameter types
+   - Makes the codebase more maintainable for future developers
+
+This fix completes our series of improvements to the content submission flow, allowing users to successfully submit content in both development and production environments, with or without blockchain connectivity.

@@ -1,9 +1,9 @@
-
 # Step-by-Step ProofChain User Guide
 
 ## Initial Setup
 
 ### Step 1: Start the Backend Server
+
 1. Open a terminal window
 2. Navigate to the backend directory:
    ```bash
@@ -24,6 +24,7 @@
    - Blockchain services initialization
 
 ### Step 2: Start the Frontend Server
+
 1. Open a new terminal window
 2. Navigate to the frontend directory:
    ```bash
@@ -40,6 +41,7 @@
 5. The frontend will start on port 5003
 
 ### Step 3: Deploy Smart Contract (if not already deployed)
+
 1. Open a new terminal window
 2. Navigate to the contracts-hardhat directory:
    ```bash
@@ -59,15 +61,38 @@
    npx hardhat run scripts/deploy.js --network localhost
    ```
 6. Note the deployed contract address for configuration
+7. Update the contract address in the backend .env file:
+   ```bash
+   cd ../backend
+   # Edit .env file and replace CONTRACT_ADDRESS with the new address
+   # Example: CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
+   ```
+8. Update the contract address in the frontend .env file:
+   ```bash
+   cd ../frontend
+   # Edit .env file and replace REACT_APP_CONTRACT_ADDRESS with the new address
+   # Example: REACT_APP_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
+   ```
+9. Restart both backend and frontend servers to apply the changes:
+
+   ```bash
+   # In backend terminal
+   npm restart
+
+   # In frontend terminal
+   npm start
+   ```
 
 ## User Journey
 
 ### Step 1: Access the Application
+
 1. Open your web browser
 2. Navigate to http://localhost:5003
 3. You should see the ProofChain homepage with a list of content items (if any)
 
 ### Step 2: Connect Your Wallet
+
 1. Click the "Connect Wallet" button in the top-right corner
 2. MetaMask will prompt you to connect
 3. Select the account you want to use
@@ -79,6 +104,7 @@
    - The UI updates to show your connected address
 
 ### Step 3: Browse Content
+
 1. On the homepage, you'll see content items submitted for verification
 2. Each content card shows:
    - Title and description
@@ -93,6 +119,7 @@
 4. Scroll down to load more content items
 
 ### Step 4: Submit Content for Verification
+
 1. Click the "Submit New Content" button
 2. Fill in the submission form:
    - Title: Enter a descriptive title
@@ -109,6 +136,7 @@
    - The content enters the commit phase of voting
 
 ### Step 5: Participate in Commit Phase Voting
+
 1. Find a content item in the commit phase
 2. Click on the content to view its details
 3. Click "Vote" to open the voting interface
@@ -128,6 +156,7 @@
     - The backend stores your commit information securely
 
 ### Step 6: Participate in Reveal Phase Voting
+
 1. Once the commit phase ends, the content enters the reveal phase
 2. Navigate to a content item in the reveal phase
 3. Click on the content to view its details
@@ -135,12 +164,13 @@
 5. The system automatically retrieves your vote details
 6. Confirm the reveal transaction in your wallet
 7. Behind the scenes:
-    - Your original vote, confidence level, and salt are submitted to the blockchain
-    - The smart contract verifies that the hash matches your commit
-    - Your vote is counted toward the final result
-    - If you don't reveal your vote during this phase, you forfeit your stake
+   - Your original vote, confidence level, and salt are submitted to the blockchain
+   - The smart contract verifies that the hash matches your commit
+   - Your vote is counted toward the final result
+   - If you don't reveal your vote during this phase, you forfeit your stake
 
 ### Step 7: Finalization and Results
+
 1. After the reveal phase ends, the content is ready for finalization
 2. Navigate to a content item pending finalization
 3. Click "Finalize Voting"
@@ -148,12 +178,13 @@
 5. The final result is determined based on the weighted votes
 6. View the verification status and vote distribution
 7. Behind the scenes:
-    - The smart contract calculates the weighted vote totals
-    - Tokens are distributed to winning voters proportional to their stake and confidence
-    - The content's status is updated in both the blockchain and the database
-    - Events are emitted that update the UI automatically
+   - The smart contract calculates the weighted vote totals
+   - Tokens are distributed to winning voters proportional to their stake and confidence
+   - The content's status is updated in both the blockchain and the database
+   - Events are emitted that update the UI automatically
 
 ### Step 8: Check Your Profile and Rewards
+
 1. Click on your address in the header
 2. View your profile information:
    - Account information
@@ -169,11 +200,13 @@
 ## Additional Features
 
 ### Toggle Theme
+
 1. Look for the sun/moon icon in the header
 2. Click to toggle between light and dark modes
 3. Your preference will be saved for future visits
 
 ### View Consensus Dashboard
+
 1. Navigate to the Dashboard section
 2. View visualizations of:
    - Consensus timeline showing voting patterns

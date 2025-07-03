@@ -25,7 +25,7 @@ const { MIN_VOTING_PERIOD } = require("../utils/constants");
  * @param {Object} contentData - Content data
  * @param {Buffer} fileBuffer - File buffer
  * @param {String} fileName - File name
- * @param {Object} signer - Ethers.js signer
+ * @param {Object} signer - Ethers.js signer or mock wallet
  * @returns {Promise<Object>} - Created content
  */
 const createContent = async (contentData, fileBuffer, fileName, signer) => {
