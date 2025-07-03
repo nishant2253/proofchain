@@ -1,0 +1,109 @@
+const Joi = require("joi");
+
+/**
+ * Validate request body against schema
+ * @param {Object} schema - Joi schema
+ */
+const validateBody = (schema) => {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.body);
+
+    if (error) {
+      res.status(400);
+      throw new Error(error.details[0].message);
+    }
+
+    next();
+  };
+};
+
+/**
+ * Validate request query against schema
+ * @param {Object} schema - Joi schema
+ */
+const validateQuery = (schema) => {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.query);
+
+    if (error) {
+      res.status(400);
+      throw new Error(error.details[0].message);
+    }
+
+    next();
+  };
+};
+
+/**
+ * Validate request params against schema
+ * @param {Object} schema - Joi schema
+ */
+const validateParams = (schema) => {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.params);
+
+    if (error) {
+      res.status(400);
+      throw new Error(error.details[0].message);
+    }
+
+    next();
+  };
+};
+
+// Common validation schemas
+const schemas = {
+  // User schemas
+  registerUser: Joi.object({
+    address: Joi.string().required(),
+    signature: Joi.string(),
+    userData: Joi.object({
+      username: Joi.string(),
+      email: Joi.string().email(),
+      bio: Joi.string(),
+      profileImageUrl: Joi.string().uri(),
+    }),
+  }),
+
+  // Content schemas
+  createContent: Joi.object({
+    title: Joi.string().required(),
+    description: Joi.string(),
+    contentType: Joi.string().valid(
+      "image",
+      "video",
+      "article",
+      "audio",
+      "other"
+    ),
+    votingDuration: Joi.number().integer().min(86400), // Minimum 24 hours
+    tags: Joi.string(),
+  }),
+
+  commitVote: Joi.object({
+    vote: Joi.number().integer().min(0).max(2).required(),
+    confidence: Joi.number().integer().min(60).max(100).required(),
+    tokenType: Joi.number().integer().min(0).max(7).required(),
+    stakeAmount: Joi.string().required(),
+    merkleProof: Joi.array().items(Joi.string()).required(),
+  }),
+
+  revealVote: Joi.object({
+    vote: Joi.number().integer().min(0).max(2).required(),
+    confidence: Joi.number().integer().min(60).max(100).required(),
+    salt: Joi.string().required(),
+  }),
+
+  // Token schemas
+  convertToUSD: Joi.object({
+    tokenType: Joi.number().integer().min(0).max(7).required(),
+    amount: Joi.string().required(),
+  }),
+};
+
+module.exports = {
+  validateBody,
+  validateQuery,
+  validateParams,
+  schemas,
+};
