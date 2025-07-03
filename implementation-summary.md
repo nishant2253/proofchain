@@ -455,3 +455,89 @@ This configuration provides protection against XSS and data injection attacks wh
   - Prevent accidental use of incomplete code
 
 - Consolidated all frontend code in the `frontend/src` directory to maintain a clear separation between backend and frontend code
+
+## Version Control & Deployment Optimizations
+
+### Git Configuration
+
+The project implements a comprehensive `.gitignore` configuration to ensure clean repository management and secure deployments:
+
+```
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production
+/build
+
+# Misc
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Compiled output
+*.min.js
+*.min.css
+
+# Local environment variables
+.env*.local
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Logs
+logs
+*.log
+
+# Backup files
+*.bak
+*~
+```
+
+This configuration provides several key benefits:
+
+1. **Security Enhancement**: Prevents sensitive environment variables, API keys, and credentials from being committed
+2. **Repository Size Optimization**: Excludes large directories like node_modules and build artifacts
+3. **Conflict Prevention**: Ignores IDE-specific files and local configuration that could cause merge conflicts
+4. **Clean Workflow**: Ensures only essential source code is tracked, improving code review processes
+5. **Cross-Platform Compatibility**: Accounts for system-specific files (like .DS_Store) that shouldn't be shared
+
+The gitignore configuration is strategically designed to work with the project's build system and development workflow, ensuring that only the necessary source files are committed while generated files are rebuilt during deployment.
