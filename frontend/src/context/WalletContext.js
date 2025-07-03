@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
+import axios from "axios";
 
 export const WalletContext = createContext();
 
@@ -32,6 +33,13 @@ export const WalletProvider = ({ children }) => {
             setAddress(address);
             setChainId(network.chainId);
             setIsConnected(true);
+
+            // Check if we have a token in localStorage
+            const token = localStorage.getItem("authToken");
+            if (!token) {
+              // If no token, authenticate with the backend
+              await authenticateWithBackend(address);
+            }
           }
         } catch (error) {
           console.error("Error checking wallet connection:", error);
@@ -42,6 +50,25 @@ export const WalletProvider = ({ children }) => {
 
     checkConnection();
   }, []);
+
+  const authenticateWithBackend = async (address) => {
+    try {
+      // Call the backend to register/login the user
+      const response = await axios.post("http://localhost:3000/api/users", {
+        address,
+        // In a real implementation, you would sign a message and include the signature
+        // signature: await signer.signMessage("Login to ProofChain"),
+        userData: {},
+      });
+
+      // Store the JWT token in localStorage
+      if (response.data && response.data.token) {
+        localStorage.setItem("authToken", response.data.token);
+      }
+    } catch (error) {
+      console.error("Error authenticating with backend:", error);
+    }
+  };
 
   const handleAccountsChanged = useCallback(async (accounts) => {
     if (accounts.length === 0) {
@@ -57,6 +84,9 @@ export const WalletProvider = ({ children }) => {
       setSigner(signer);
       setAddress(address);
       setIsConnected(true);
+
+      // Re-authenticate with the backend when account changes
+      await authenticateWithBackend(address);
     }
   }, []);
 
@@ -105,6 +135,9 @@ export const WalletProvider = ({ children }) => {
       setIsConnected(true);
       setError(null);
 
+      // Authenticate with the backend
+      await authenticateWithBackend(address);
+
       return true;
     } catch (error) {
       console.error("Error connecting to wallet:", error);
@@ -119,6 +152,9 @@ export const WalletProvider = ({ children }) => {
     setAddress("");
     setChainId(null);
     setIsConnected(false);
+
+    // Clear the auth token
+    localStorage.removeItem("authToken");
   };
 
   const switchChain = async (targetChainId) => {

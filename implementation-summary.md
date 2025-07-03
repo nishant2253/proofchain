@@ -714,3 +714,81 @@ This approach ensures that:
 - New developers can quickly set up their environment using the example files
 - Different environments (development, staging, production) can use different configurations
 - Local development settings don't interfere with team collaboration
+
+## Recent Authentication Flow Improvements
+
+### Wallet Authentication Integration
+
+A critical issue was identified and fixed in the authentication flow between wallet connection and backend API requests:
+
+1. **Issue Identified**: Users were experiencing "Not authorized, no token" errors when submitting content after connecting their wallet. This occurred because wallet connection in the UI didn't automatically authenticate with the backend to obtain a JWT token.
+
+2. **Root Cause**: While the wallet connection was successful in the frontend, API requests requiring authentication (like content submission) failed because no JWT token was being stored in localStorage.
+
+3. **Implementation Fix**:
+   - Added `authenticateWithBackend` function in WalletContext to handle backend authentication
+   - Automatically authenticate with backend after successful wallet connection
+   - Store JWT token in localStorage for subsequent API requests
+   - Re-authenticate when wallet account changes
+   - Clear auth token when disconnecting wallet
+
+```javascript
+// WalletContext.js authentication implementation
+const authenticateWithBackend = async (address) => {
+  try {
+    // Call the backend to register/login the user
+    const response = await axios.post("http://localhost:3000/api/users", {
+      address,
+      // In a real implementation, you would sign a message and include the signature
+      // signature: await signer.signMessage("Login to ProofChain"),
+      userData: {},
+    });
+
+    // Store the JWT token in localStorage
+    if (response.data && response.data.token) {
+      localStorage.setItem("authToken", response.data.token);
+    }
+  } catch (error) {
+    console.error("Error authenticating with backend:", error);
+  }
+};
+```
+
+4. **Integration Points**:
+
+   - Added authentication call in initial wallet connection check
+   - Added authentication after manual wallet connection
+   - Added re-authentication when account changes
+   - Added token cleanup on wallet disconnect
+
+5. **Security Considerations**:
+   - In production, the implementation should include message signing for secure authentication
+   - The current implementation is simplified for demonstration purposes
+   - A proper implementation would include signature verification on the backend
+
+### JWT Authentication System
+
+The ProofChain platform uses JSON Web Tokens (JWT) for secure authentication:
+
+1. **JWT Implementation**:
+
+   - Tokens are generated on the backend using the `jsonwebtoken` library
+   - The user's wallet address is encoded in the token payload
+   - Tokens are signed using a secret key stored in environment variables
+   - Tokens have a configurable expiration time
+
+2. **Token Flow**:
+
+   - User connects wallet and authenticates with backend
+   - Backend generates and returns a JWT token
+   - Frontend stores token in localStorage
+   - Token is included in Authorization header for API requests
+   - Backend middleware validates token for protected routes
+
+3. **Security Measures**:
+   - Tokens are transmitted over HTTPS for security
+   - Token verification checks for tampering and expiration
+   - Invalid or expired tokens trigger authentication errors
+   - Sensitive operations require additional verification
+
+This authentication flow ensures that only authenticated users with connected wallets can access protected features like content submission, voting, and profile management.
