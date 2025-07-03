@@ -215,7 +215,7 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 ## 📞 Contact
 
-For questions or support, please contact [your-email@example.com](mailto:your-email@example.com).
+For questions or support, please contact [nishantgupta1965@gmail.com](mailto:nishantgupta1965@gmail.com).
 
 ## 🏁 Project Completion Status
 
