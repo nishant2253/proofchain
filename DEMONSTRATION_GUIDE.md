@@ -528,4 +528,4 @@ npm run build
 
 ---
 
-\_This guide is maintained by the ProofChain. Last updated: July 2025.
+_This guide is maintained by the ProofChain. Last updated: July 2025._
