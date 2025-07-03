@@ -792,3 +792,615 @@ The ProofChain platform uses JSON Web Tokens (JWT) for secure authentication:
    - Sensitive operations require additional verification
 
 This authentication flow ensures that only authenticated users with connected wallets can access protected features like content submission, voting, and profile management.
+
+## Recent Bug Fixes & Improvements
+
+### Content Submission Fix
+
+A critical issue was identified and fixed in the content submission process:
+
+1. **Issue Identified**: Users were experiencing "400 Bad Request" errors when submitting content through the form. The backend was expecting a file upload via multipart/form-data, but the frontend was sending a JSON payload.
+
+2. **Root Cause**: The content submission form was not properly configured to handle file uploads. The backend controller expected a file in `req.files.file`, but the frontend was only sending text fields.
+
+3. **Implementation Fix**:
+   - Modified `ContentSubmitPage.js` to use FormData for submission instead of a plain JSON object
+   - Created a text file blob from the content URL to satisfy the backend's file requirement
+   - Added proper form fields to match what the backend expects
+
+```javascript
+// ContentSubmitPage.js - Updated handleSubmit function
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!isConnected) {
+    setError("Please connect your wallet first");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setError(null);
+
+    // Create a FormData object to handle the file upload
+    const formDataToSend = new FormData();
+
+    // Add text fields to FormData
+    formDataToSend.append("title", formData.title);
+    formDataToSend.append("description", formData.description);
+    formDataToSend.append("contentType", formData.contentType);
+    formDataToSend.append("votingDuration", formData.votingDuration);
+
+    // Create a simple text file with the content URL
+    // This is a workaround since the backend expects a file
+    const contentUrlBlob = new Blob([formData.contentUrl], {
+      type: "text/plain",
+    });
+    formDataToSend.append("file", contentUrlBlob, "content-url.txt");
+
+    // Submit content to API with FormData
+    const response = await submitContent(formDataToSend);
+
+    // Redirect to the content page
+    navigate(`/content/${response.contentId}`);
+  } catch (err) {
+    console.error("Error submitting content:", err);
+    setError(parseErrorMessage(err));
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+4. **API Utility Update**:
+   - Modified the `submitContent` function in `api.js` to detect FormData objects
+   - Added proper Content-Type headers for multipart/form-data when needed
+   - Maintained backward compatibility for JSON submissions
+
+```javascript
+// api.js - Updated submitContent function
+export const submitContent = (contentData) => {
+  // Check if contentData is FormData
+  const isFormData = contentData instanceof FormData;
+
+  return api.post("/content", contentData, {
+    headers: isFormData
+      ? {
+          "Content-Type": "multipart/form-data",
+        }
+      : {
+          "Content-Type": "application/json",
+        },
+  });
+};
+```
+
+### Chain Switching Error Fix
+
+An issue was identified and fixed in the wallet chain switching functionality:
+
+1. **Issue Identified**: Users were experiencing "Error switching chain: Object" errors when attempting to switch Ethereum networks.
+
+2. **Root Cause**: The `switchChain` function in `WalletContext.js` was not properly handling different error types, particularly when a chain was not yet added to MetaMask.
+
+3. **Implementation Fix**:
+   - Improved error handling in the `switchChain` function
+   - Added specific handling for error code 4902 (chain not added to MetaMask)
+   - Added helper functions to get chain information based on chainId
+   - Provided more descriptive error messages
+
+```javascript
+// WalletContext.js - Improved switchChain function
+const switchChain = async (targetChainId) => {
+  if (!window.ethereum) {
+    setError("No Ethereum wallet found. Please install MetaMask.");
+    return false;
+  }
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: ethers.utils.hexValue(targetChainId) }],
+    });
+    return true;
+  } catch (error) {
+    console.error("Error switching chain:", error);
+
+    // Handle different error types
+    if (error.code === 4902) {
+      // Chain not added to MetaMask
+      try {
+        // Add the chain to MetaMask
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: ethers.utils.hexValue(targetChainId),
+              chainName: getChainName(targetChainId),
+              nativeCurrency: {
+                name: "Ether",
+                symbol: "ETH",
+                decimals: 18,
+              },
+              rpcUrls: [getRpcUrl(targetChainId)],
+              blockExplorerUrls: [getBlockExplorerUrl(targetChainId)],
+            },
+          ],
+        });
+        return true;
+      } catch (addError) {
+        setError(`Error adding chain: ${addError.message || "Unknown error"}`);
+        return false;
+      }
+    } else {
+      // Other errors
+      setError(`Error switching chain: ${error.message || "Unknown error"}`);
+      return false;
+    }
+  }
+};
+```
+
+4. **Helper Functions**:
+   - Added `getChainName`, `getRpcUrl`, and `getBlockExplorerUrl` functions to provide chain-specific information
+   - These functions support common networks like Ethereum Mainnet, Goerli, Sepolia, and local Hardhat node
+
+These fixes ensure that:
+
+- Content submission works correctly with proper file handling
+- Chain switching is more robust and user-friendly
+- Error messages are more descriptive and helpful for users
+
+## Content Submission FormData Fixes
+
+After implementing the initial content submission fix, we encountered another issue with how FormData was being handled. Here are the additional fixes made:
+
+1. **Issue Identified**: The backend was still returning a 400 Bad Request error when submitting content. The validation middleware was expecting specific fields and a file upload, and our FormData wasn't being properly formatted.
+
+2. **Root Cause Analysis**:
+
+   - The backend validation requires `votingDuration` to be at least 86400 seconds (24 hours), but we were sending days
+   - The Content-Type header was being manually set to "multipart/form-data" without the boundary parameter
+   - The request interceptor was potentially interfering with FormData headers
+
+3. **Implementation Fixes**:
+
+   **A. ContentSubmitPage.js Updates:**
+
+   - Converted voting duration from days to seconds to meet validation requirements
+   - Added logging to better debug the submission process
+   - Improved FormData construction for file upload
+
+   ```javascript
+   // Convert voting duration from days to seconds (minimum 24 hours = 86400 seconds)
+   const votingDurationSeconds = parseInt(formData.votingDuration) * 86400;
+   formDataToSend.append("votingDuration", votingDurationSeconds);
+   ```
+
+   **B. API Utility Improvements:**
+
+   - Removed manual Content-Type header for FormData to let the browser handle it
+   - Added specific handling for FormData vs JSON content
+   - Updated request interceptor to preserve FormData headers
+
+   ```javascript
+   // When sending FormData, let the browser set the Content-Type with boundary
+   const config = isFormData
+     ? {
+         headers: {
+           // Remove Content-Type header for FormData - browser will set it automatically with boundary
+         },
+       }
+     : {
+         headers: {
+           "Content-Type": "application/json",
+         },
+       };
+   ```
+
+   **C. Request Interceptor Enhancement:**
+
+   - Added detection of FormData in the request interceptor
+   - Removed Content-Type header for FormData requests to prevent conflicts
+
+   ```javascript
+   // Don't modify Content-Type if it's FormData (browser will set it automatically)
+   const isFormData = config.data instanceof FormData;
+   if (isFormData && config.headers["Content-Type"]) {
+     delete config.headers["Content-Type"];
+   }
+   ```
+
+4. **Key Learnings**:
+   - When working with FormData, let the browser set the Content-Type header with the proper boundary
+   - Be careful with request interceptors that might modify headers needed for FormData
+   - Ensure backend validation requirements (like minimum values) are met in frontend submissions
+   - Add proper logging to help diagnose API submission issues
+
+These fixes ensure that content submission works correctly by properly formatting the FormData object, respecting backend validation requirements, and allowing the browser to handle multipart form data boundaries correctly.
+
+## IPFS Service Mock Implementation
+
+After fixing the content submission form and FormData handling, we encountered a 500 Internal Server Error from the backend. This issue was related to the IPFS service attempting to connect to Infura IPFS without proper credentials.
+
+1. **Issue Identified**: The backend was returning a 500 Internal Server Error when submitting content. The error occurred in the IPFS service which was trying to upload files to Infura IPFS but missing the required project credentials.
+
+2. **Root Cause Analysis**:
+
+   - The backend's `.env` file contained IPFS configuration for local IPFS node but no Infura project credentials
+   - The code was hardcoded to use Infura IPFS endpoints without checking for credentials
+   - No fallback or mock implementation was available for development environments
+
+3. **Implementation Fix**:
+
+   - Added a mock implementation for IPFS service in development mode
+   - Created an in-memory storage using Map to simulate IPFS storage
+   - Added a function to generate mock IPFS hashes
+   - Added conditional logic to use mock implementation when credentials are missing
+   - Updated environment variable handling to use configured endpoints
+
+   ```javascript
+   // Flag to use mock IPFS in development
+   const USE_MOCK_IPFS =
+     !process.env.IPFS_PROJECT_ID ||
+     !process.env.IPFS_PROJECT_SECRET ||
+     process.env.NODE_ENV === "development";
+
+   // Mock IPFS storage for development
+   const mockIpfsStorage = new Map();
+
+   /**
+    * Generate a mock IPFS hash for development
+    * @returns {String} - Mock IPFS hash
+    */
+   const generateMockIpfsHash = () => {
+     return `Qm${crypto.randomBytes(44).toString("hex")}`;
+   };
+   ```
+
+4. **Mock Implementation Features**:
+
+   - Simulates file uploads by storing content in memory
+   - Generates realistic-looking IPFS hashes
+   - Provides mock implementations for all IPFS operations (upload, get, pin)
+   - Logs operations for debugging purposes
+   - Automatically activates when credentials are missing or in development mode
+
+5. **Benefits**:
+   - Allows development and testing without an actual IPFS connection
+   - Eliminates dependency on external services during development
+   - Provides consistent behavior for testing
+   - Makes the application more robust by gracefully handling missing credentials
+
+This fix ensures that content submission works correctly in development environments without requiring actual IPFS credentials, making the application more developer-friendly and robust.
+
+## Blockchain Service Mock Implementation Fix
+
+After implementing the IPFS service mock, we encountered another error: "Cannot read properties of undefined (reading 'toHexString')". This was related to the blockchain service trying to use ethers.js functions when blockchain integration was disabled.
+
+1. **Issue Identified**: The frontend was showing an error "Cannot read properties of undefined (reading 'toHexString')" when submitting content. This occurred because the mock implementation in the blockchain service was still trying to use ethers.js functions even when blockchain was disabled.
+
+2. **Root Cause Analysis**:
+
+   - The `DISABLE_BLOCKCHAIN` flag was set to `true` in the `.env` file
+   - The mock implementation in `blockchainService.js` was not completely isolated from ethers.js
+   - The code was trying to use ethers.js functions like `toHexString()` on undefined objects
+
+3. **Implementation Fix**:
+
+   - Updated the `submitContent` function to use pure JavaScript for generating IDs and hashes when blockchain is disabled
+   - Replaced ethers.js-dependent code with native JavaScript alternatives
+   - Added better logging for mock blockchain operations
+
+   ```javascript
+   // Updated mock implementation in submitContent function
+   if (process.env.DISABLE_BLOCKCHAIN === "true") {
+     console.log("Blockchain disabled. Returning mock content submission.");
+     // Generate a random content ID without using ethers.js
+     const contentId = Math.floor(Math.random() * 1000000).toString();
+     const transactionHash =
+       "0x" +
+       Date.now().toString(16) +
+       Math.random().toString(16).substring(2, 10);
+
+     console.log(
+       `Mock content submission: contentId=${contentId}, transactionHash=${transactionHash}`
+     );
+     return { contentId, transactionHash };
+   }
+   ```
+
+4. **Benefits of the Fix**:
+
+   - Completely isolated mock implementation from ethers.js dependencies
+   - Eliminated errors related to undefined ethers.js objects
+   - Improved logging for better debugging
+   - Maintained the same interface for both real and mock implementations
+
+5. **Development Environment Improvements**:
+   - The application can now run completely without blockchain connectivity
+   - Developers don't need to set up a local blockchain node for testing
+   - The system gracefully handles the absence of blockchain services
+
+This fix ensures that content submission works correctly in development environments with blockchain disabled, making it easier to develop and test the application without requiring a full blockchain setup.
+
+## Wallet Connection & Authentication Fixes
+
+After deploying the smart contract and setting up the local blockchain environment, we encountered issues with wallet connection. The MetaMask popup wasn't appearing when clicking the "Connect Wallet" button, and there were potential issues with authentication flow and contract interactions. Here's a summary of the fixes implemented:
+
+### 1. Circular Dependency Resolution in App.js
+
+A critical circular dependency was identified in App.js that was affecting wallet initialization:
+
+- **Issue**: App.js was importing useWallet hook at the top level while also wrapping the entire application in WalletProvider
+- **Fix**: Restructured App.js to move the useWallet import inside a separate AppRoutes component that's rendered after WalletProvider is initialized
+- **Benefit**: Ensures proper initialization order and prevents React hooks from being called conditionally
+
+```javascript
+// Before: Circular dependency
+import useWallet from "./hooks/useWallet";
+// ...
+const App = () => {
+  return (
+    <ThemeProvider>
+      <WalletProvider>
+        <Layout>...</Layout>
+      </WalletProvider>
+    </ThemeProvider>
+  );
+};
+
+// After: Resolved circular dependency
+const App = () => {
+  return (
+    <ThemeProvider>
+      <WalletProvider>
+        <AppRoutes />
+      </WalletProvider>
+    </ThemeProvider>
+  );
+};
+
+const AppRoutes = () => {
+  // Import useWallet here to avoid circular dependency
+  const useWallet = require("./hooks/useWallet").default;
+  // ...
+};
+```
+
+### 2. API URL Configuration Fixes
+
+- **Issue**: The frontend was using an incorrect API URL environment variable name
+- **Fix**: Updated API_BASE_URL to use the correct environment variable REACT_APP_API_URL
+- **Added**: Debug logging to trace API calls and identify connection issues
+- **Benefit**: Ensures proper communication between frontend and backend services
+
+```javascript
+// Before
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL || "http://localhost:3000/api";
+
+// After
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:3000/api";
+console.log("API_BASE_URL:", API_BASE_URL);
+```
+
+### 3. Backend Authentication URL Fix
+
+- **Issue**: The authenticateWithBackend function was using a hardcoded URL instead of the environment variable
+- **Fix**: Updated to use the same API URL from environment variables for consistency
+- **Added**: Comprehensive logging for authentication flow to trace token generation and storage
+- **Benefit**: Ensures authentication works across different environments
+
+```javascript
+// Before
+const response = await axios.post("http://localhost:3000/api/users", {
+  address,
+  userData: {},
+});
+
+// After
+const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:3000/api";
+const response = await axios.post(`${apiUrl}/users`, {
+  address,
+  userData: {},
+});
+console.log("Authentication response:", response.data);
+```
+
+### 4. Wallet Connection Debugging & Error Handling
+
+- **Issue**: Limited visibility into wallet connection process made debugging difficult
+- **Fix**: Added comprehensive logging throughout the wallet connection process
+- **Added**: User-friendly error messages for common connection issues
+- **Benefit**: Easier troubleshooting and better user experience
+
+```javascript
+const connect = async () => {
+  console.log("Connect function called");
+
+  if (!window.ethereum) {
+    console.error("No Ethereum wallet found. Please install MetaMask.");
+    setError("No Ethereum wallet found. Please install MetaMask.");
+    return false;
+  }
+
+  try {
+    console.log("Requesting accounts...");
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    });
+
+    console.log("Accounts received:", accounts);
+    // ...
+  } catch (error) {
+    console.error("Error connecting to wallet:", error);
+    // ...
+  }
+};
+```
+
+### 5. Hardhat Local Network Support
+
+- **Issue**: The application didn't properly support the local Hardhat network (chainId 1337)
+- **Fix**: Added support for both chainId 31337 and 1337 in network helpers
+- **Added**: Network names, RPC URLs, and chain configurations for local development
+- **Benefit**: Seamless connection to local Hardhat node for testing
+
+```javascript
+// Added support for both Hardhat chain IDs
+const getChainName = (chainId) => {
+  switch (chainId) {
+    // ...existing networks...
+    case 31337:
+      return "Hardhat Local";
+    case 1337:
+      return "Hardhat Local";
+    default:
+      return "Unknown Network";
+  }
+};
+```
+
+### 6. Smart Contract Integration Enhancements
+
+- **Issue**: Limited visibility into contract address loading and initialization
+- **Fix**: Added logging for contract address from environment variables
+- **Enhanced**: Error handling for missing contract address
+- **Benefit**: Easier debugging of contract interactions
+
+```javascript
+// Get contract address from environment variables
+const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS;
+console.log("Using contract address:", CONTRACT_ADDRESS);
+
+export const getContract = (signerOrProvider) => {
+  if (!CONTRACT_ADDRESS) {
+    console.error("Contract address not defined in environment variables");
+    throw new Error("Contract address not defined in environment variables");
+  }
+
+  console.log("Creating contract instance with address:", CONTRACT_ADDRESS);
+  return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signerOrProvider);
+};
+```
+
+### 7. MetaMask Detection Improvements
+
+- **Issue**: No clear indication when MetaMask wasn't installed or available
+- **Fix**: Added explicit checks for window.ethereum with user-friendly alerts
+- **Benefit**: Better user experience with clear guidance on wallet requirements
+
+```javascript
+const handleConnect = async () => {
+  console.log("Connect button clicked");
+  console.log("window.ethereum exists:", !!window.ethereum);
+
+  if (!window.ethereum) {
+    alert(
+      "MetaMask is not installed. Please install MetaMask to connect your wallet."
+    );
+    return;
+  }
+
+  // Continue with connection...
+};
+```
+
+These fixes collectively address the wallet connection issues by resolving circular dependencies, fixing API URL configurations, enhancing error handling, and adding comprehensive logging for debugging. The application now properly supports local Hardhat development and provides better user feedback during the wallet connection process.
+
+## API Port Configuration Mismatch Fix
+
+After implementing the wallet connection fixes, we encountered another issue with content loading. The frontend was displaying "Failed to load content items" with network errors in the console: "Failed to load resource: net::ERR_CONNECTION_REFUSED".
+
+### Issue Analysis
+
+Upon investigation, we identified a port mismatch between the frontend and backend configurations:
+
+1. **Backend Server Configuration**:
+
+   - The backend server was configured to run on port 3000 as specified in the backend/.env file:
+     ```
+     PORT=3000
+     ```
+   - The backend server was successfully running on this port (confirmed via process check)
+
+2. **Frontend API Configuration**:
+
+   - The frontend was configured to connect to port 5000 as specified in frontend/.env:
+     ```
+     REACT_APP_API_URL=http://localhost:5000/api
+     ```
+   - This mismatch caused all API requests to fail with connection refused errors
+
+3. **Console Error Details**:
+   - Network errors showing `http://localhost:5000/api/content?page=1&limit=10` failing
+   - API_BASE_URL in the console showing the incorrect port
+   - Specific error: `AxiosError: Network Error` with code `ERR_NETWORK`
+   - Stack trace showing the request to `http://localhost:5000/api/content?page=1&limit=10` failing
+
+### Implementation Fix
+
+The solution was to update the frontend configuration to match the backend port:
+
+```diff
+- REACT_APP_API_URL=http://localhost:5000/api
++ REACT_APP_API_URL=http://localhost:3000/api
+```
+
+We implemented this fix by:
+
+1. Confirming the backend server was running on port 3000:
+
+   ```bash
+   ps aux | grep node | grep server.js
+   ```
+
+2. Verifying the backend port configuration:
+
+   ```bash
+   cat backend/.env | grep PORT
+   # Output: PORT=3000
+   ```
+
+3. Updating the frontend environment variable:
+
+   ```bash
+   sed -i 's|REACT_APP_API_URL=http://localhost:5000/api|REACT_APP_API_URL=http://localhost:3000/api|' frontend/.env
+   ```
+
+4. Verifying the change:
+
+   ```bash
+   cat frontend/.env | grep API_URL
+   # Output: REACT_APP_API_URL=http://localhost:3000/api
+   ```
+
+5. Restarting the frontend server to apply the changes
+
+This ensures that:
+
+- The frontend makes API requests to the correct backend port
+- Content loads properly on the homepage
+- Authentication and other API interactions work correctly
+
+### Best Practices for Port Configuration
+
+To prevent similar issues in the future, we recommend:
+
+1. **Environment Variable Documentation**:
+
+   - Clearly document the expected ports in README files
+   - Include comments in .env.example files explaining port requirements
+
+2. **Configuration Validation**:
+
+   - Add startup checks that validate critical configuration
+   - Log warnings when mismatches might occur
+
+3. **Consistent Development Environment**:
+   - Use consistent ports across local development setups
+   - Consider using docker-compose for standardized environments
+
+This fix resolved the content loading issues and allowed the application to properly communicate between frontend and backend components.

@@ -192,8 +192,17 @@ const submitContent = async (ipfsHash, votingDuration, signer) => {
     // Check if blockchain is disabled
     if (process.env.DISABLE_BLOCKCHAIN === "true") {
       console.log("Blockchain disabled. Returning mock content submission.");
-      const contentId = Date.now().toString();
-      return { contentId, transactionHash: "0x" + contentId };
+      // Generate a random content ID without using ethers.js
+      const contentId = Math.floor(Math.random() * 1000000).toString();
+      const transactionHash =
+        "0x" +
+        Date.now().toString(16) +
+        Math.random().toString(16).substring(2, 10);
+
+      console.log(
+        `Mock content submission: contentId=${contentId}, transactionHash=${transactionHash}`
+      );
+      return { contentId, transactionHash };
     }
 
     const { contract } = initializeBlockchain();

@@ -1,7 +1,10 @@
 import axios from "axios";
 
+// Get API base URL from environment variables, default to localhost:3000
 const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL || "http://localhost:3000/api";
+  process.env.REACT_APP_API_URL || "http://localhost:3000/api";
+
+console.log("API_BASE_URL:", API_BASE_URL);
 
 // Create axios instance with default config
 const api = axios.create({
@@ -18,6 +21,13 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Don't modify Content-Type if it's FormData (browser will set it automatically)
+    const isFormData = config.data instanceof FormData;
+    if (isFormData && config.headers["Content-Type"]) {
+      delete config.headers["Content-Type"];
+    }
+
     return config;
   },
   (error) => {
@@ -52,7 +62,26 @@ export const getUserReputationHistory = (userId) =>
 export const getContentList = (page = 1, limit = 10) =>
   api.get("/content", { params: { page, limit } });
 export const getContentById = (contentId) => api.get(`/content/${contentId}`);
-export const submitContent = (contentData) => api.post("/content", contentData);
+export const submitContent = (contentData) => {
+  // Check if contentData is FormData
+  const isFormData = contentData instanceof FormData;
+
+  // When sending FormData, let the browser set the Content-Type with boundary
+  // Don't set Content-Type header manually for FormData
+  const config = isFormData
+    ? {
+        headers: {
+          // Remove Content-Type header for FormData - browser will set it automatically with boundary
+        },
+      }
+    : {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+
+  return api.post("/content", contentData, config);
+};
 export const updateContent = (contentId, data) =>
   api.put(`/content/${contentId}`, data);
 export const deleteContent = (contentId) => api.delete(`/content/${contentId}`);

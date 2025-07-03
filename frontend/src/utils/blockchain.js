@@ -26,6 +26,7 @@ const CONTRACT_ABI = [
 
 // Get contract address from environment variables
 const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS;
+console.log("Using contract address:", CONTRACT_ADDRESS);
 
 /**
  * Get contract instance with signer or provider
@@ -34,9 +35,11 @@ const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS;
  */
 export const getContract = (signerOrProvider) => {
   if (!CONTRACT_ADDRESS) {
+    console.error("Contract address not defined in environment variables");
     throw new Error("Contract address not defined in environment variables");
   }
 
+  console.log("Creating contract instance with address:", CONTRACT_ADDRESS);
   return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signerOrProvider);
 };
 

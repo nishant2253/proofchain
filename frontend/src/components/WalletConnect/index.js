@@ -6,6 +6,8 @@ const SUPPORTED_CHAINS = [
   { id: 1, name: "Ethereum Mainnet" },
   { id: 5, name: "Goerli Testnet" },
   { id: 11155111, name: "Sepolia Testnet" },
+  { id: 31337, name: "Hardhat Local" },
+  { id: 1337, name: "Hardhat Local" },
 ];
 
 const WalletConnect = () => {
@@ -22,6 +24,16 @@ const WalletConnect = () => {
   const [isChainSwitching, setIsChainSwitching] = useState(false);
 
   const handleConnect = async () => {
+    console.log("Connect button clicked");
+    console.log("window.ethereum exists:", !!window.ethereum);
+
+    if (!window.ethereum) {
+      alert(
+        "MetaMask is not installed. Please install MetaMask to connect your wallet."
+      );
+      return;
+    }
+
     const success = await connect();
     if (!success && !SUPPORTED_CHAINS.find((chain) => chain.id === chainId)) {
       // If connection failed due to wrong chain, prompt to switch

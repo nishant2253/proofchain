@@ -53,17 +53,26 @@ export const WalletProvider = ({ children }) => {
 
   const authenticateWithBackend = async (address) => {
     try {
+      console.log("Authenticating with backend for address:", address);
+
+      // Get API URL from environment variables
+      const apiUrl =
+        process.env.REACT_APP_API_URL || "http://localhost:3000/api";
+
       // Call the backend to register/login the user
-      const response = await axios.post("http://localhost:3000/api/users", {
+      const response = await axios.post(`${apiUrl}/users`, {
         address,
         // In a real implementation, you would sign a message and include the signature
         // signature: await signer.signMessage("Login to ProofChain"),
         userData: {},
       });
 
+      console.log("Authentication response:", response.data);
+
       // Store the JWT token in localStorage
       if (response.data && response.data.token) {
         localStorage.setItem("authToken", response.data.token);
+        console.log("JWT token stored in localStorage");
       }
     } catch (error) {
       console.error("Error authenticating with backend:", error);
@@ -112,21 +121,30 @@ export const WalletProvider = ({ children }) => {
   }, [handleAccountsChanged]);
 
   const connect = async () => {
+    console.log("Connect function called");
+
     if (!window.ethereum) {
+      console.error("No Ethereum wallet found. Please install MetaMask.");
       setError("No Ethereum wallet found. Please install MetaMask.");
       return false;
     }
 
     try {
+      console.log("Requesting accounts...");
       // Request account access
-      await window.ethereum.request({
+      const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
+
+      console.log("Accounts received:", accounts);
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       const address = await signer.getAddress();
       const network = await provider.getNetwork();
+
+      console.log("Connected to network:", network);
+      console.log("Connected with address:", address);
 
       setProvider(provider);
       setSigner(signer);
@@ -171,8 +189,88 @@ export const WalletProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error("Error switching chain:", error);
-      setError(error.message);
-      return false;
+
+      // Handle different error types
+      if (error.code === 4902) {
+        // Chain not added to MetaMask
+        try {
+          // Add the chain to MetaMask
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: ethers.utils.hexValue(targetChainId),
+                chainName: getChainName(targetChainId),
+                nativeCurrency: {
+                  name: "Ether",
+                  symbol: "ETH",
+                  decimals: 18,
+                },
+                rpcUrls: [getRpcUrl(targetChainId)],
+                blockExplorerUrls: [getBlockExplorerUrl(targetChainId)],
+              },
+            ],
+          });
+          return true;
+        } catch (addError) {
+          setError(
+            `Error adding chain: ${addError.message || "Unknown error"}`
+          );
+          return false;
+        }
+      } else {
+        // Other errors
+        setError(`Error switching chain: ${error.message || "Unknown error"}`);
+        return false;
+      }
+    }
+  };
+
+  // Helper functions for chain switching
+  const getChainName = (chainId) => {
+    switch (chainId) {
+      case 1:
+        return "Ethereum Mainnet";
+      case 5:
+        return "Goerli Testnet";
+      case 11155111:
+        return "Sepolia Testnet";
+      case 31337:
+        return "Hardhat Local";
+      case 1337:
+        return "Hardhat Local";
+      default:
+        return "Unknown Network";
+    }
+  };
+
+  const getRpcUrl = (chainId) => {
+    switch (chainId) {
+      case 1:
+        return "https://mainnet.infura.io/v3/your-infura-id";
+      case 5:
+        return "https://goerli.infura.io/v3/your-infura-id";
+      case 11155111:
+        return "https://sepolia.infura.io/v3/your-infura-id";
+      case 31337:
+        return "http://localhost:8545";
+      case 1337:
+        return "http://localhost:8545";
+      default:
+        return "";
+    }
+  };
+
+  const getBlockExplorerUrl = (chainId) => {
+    switch (chainId) {
+      case 1:
+        return "https://etherscan.io";
+      case 5:
+        return "https://goerli.etherscan.io";
+      case 11155111:
+        return "https://sepolia.etherscan.io";
+      default:
+        return "";
     }
   };
 

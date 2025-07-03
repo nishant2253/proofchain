@@ -37,23 +37,34 @@ const ContentSubmitPage = () => {
       setLoading(true);
       setError(null);
 
-      // Calculate voting deadline (current time + votingDuration days)
-      const votingDeadline = new Date();
-      votingDeadline.setDate(
-        votingDeadline.getDate() + parseInt(formData.votingDuration)
-      );
+      // Create a FormData object to handle the file upload
+      const formDataToSend = new FormData();
 
-      // Prepare data for submission
-      const contentData = {
+      // Add text fields to FormData
+      formDataToSend.append("title", formData.title);
+      formDataToSend.append("description", formData.description);
+      formDataToSend.append("contentType", formData.contentType);
+
+      // Convert voting duration from days to seconds (minimum 24 hours = 86400 seconds)
+      const votingDurationSeconds = parseInt(formData.votingDuration) * 86400;
+      formDataToSend.append("votingDuration", votingDurationSeconds);
+
+      // Create a simple text file with the content URL
+      const contentUrlBlob = new Blob([formData.contentUrl], {
+        type: "text/plain",
+      });
+      formDataToSend.append("file", contentUrlBlob, "content-url.txt");
+
+      console.log("Submitting content with FormData:", {
         title: formData.title,
         description: formData.description,
-        contentUrl: formData.contentUrl,
         contentType: formData.contentType,
-        votingDeadline: votingDeadline.toISOString(),
-      };
+        votingDuration: votingDurationSeconds,
+      });
 
-      // Submit content to API
-      const response = await submitContent(contentData);
+      // Submit content to API with FormData
+      const response = await submitContent(formDataToSend);
+      console.log("Content submission response:", response);
 
       // Redirect to the content page
       navigate(`/content/${response.contentId}`);
