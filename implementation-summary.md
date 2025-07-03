@@ -119,6 +119,64 @@ ProofChain is a decentralized application implementing a multi-token voting syst
 - Added database seeding scripts for development and testing
 - Implemented MongoDB Atlas connection for cloud database option
 
+### Webpack Configuration Optimizations
+
+The project includes custom webpack configurations to enhance development experience and ensure compatibility with modern libraries:
+
+1. **Node Polyfills**: Added fallbacks for Node.js core modules required by ethers.js and other blockchain libraries:
+
+   ```javascript
+   config.resolve.fallback = {
+     crypto: require.resolve("crypto-browserify"),
+     stream: require.resolve("stream-browserify"),
+     assert: require.resolve("assert"),
+     http: require.resolve("stream-http"),
+     https: require.resolve("https-browserify"),
+     os: require.resolve("os-browserify"),
+     url: require.resolve("url"),
+   };
+   ```
+
+2. **Dev Server Middleware**: Implemented modern webpack-dev-server middleware configuration:
+
+   ```javascript
+   module.exports.devServer = function (configFunction) {
+     return function (proxy, allowedHost) {
+       const config = configFunction(proxy, allowedHost);
+
+       // Replace deprecated options with setupMiddlewares
+       const fsMiddleware = config.onBeforeSetupMiddleware;
+       const appMiddleware = config.onAfterSetupMiddleware;
+
+       config.setupMiddlewares = (middlewares, devServer) => {
+         if (fsMiddleware) {
+           fsMiddleware(devServer);
+         }
+         middlewares.push(...(devServer.static || []));
+         if (appMiddleware) {
+           appMiddleware(devServer);
+         }
+         return middlewares;
+       };
+
+       // Remove deprecated options
+       delete config.onBeforeSetupMiddleware;
+       delete config.onAfterSetupMiddleware;
+
+       return config;
+     };
+   };
+   ```
+
+3. **Build Optimization**: Used react-app-rewired to customize Create React App's webpack configuration without ejecting, maintaining future compatibility with CRA updates
+
+These optimizations ensure:
+
+- Compatibility with blockchain libraries that rely on Node.js built-ins
+- Clean development experience without deprecation warnings
+- Optimized production builds with proper code splitting and tree shaking
+- Future-proof configuration that adapts to webpack's evolving best practices
+
 ## Technical Implementation Details
 
 ### Commit-Reveal Scheme
