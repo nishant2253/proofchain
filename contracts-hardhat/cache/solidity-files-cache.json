@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "/home/nishant/proofchain/contracts/contracts/ProofChainMultiTokenVoting.sol": {
+    "/home/nishant/proofchain/contracts-hardhat/contracts/ProofChainMultiTokenVoting.sol": {
       "lastModificationDate": 1751563434686,
       "contentHash": "18399b01b859c6bab1133f5e487daa35",
       "sourceName": "contracts/ProofChainMultiTokenVoting.sol",
@@ -42,42 +42,7 @@
         "ProofChainMultiTokenVoting"
       ]
     },
-    "/home/nishant/proofchain/contracts/node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol": {
-      "lastModificationDate": 1751563336150,
-      "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
-      "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "ReentrancyGuard"
-      ]
-    },
-    "/home/nishant/proofchain/contracts/node_modules/@openzeppelin/contracts/access/Ownable.sol": {
+    "/home/nishant/proofchain/contracts-hardhat/node_modules/@openzeppelin/contracts/access/Ownable.sol": {
       "lastModificationDate": 1751563336120,
       "contentHash": "5a20b2cad87ddb61c7a3a6af21289e28",
       "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
@@ -114,42 +79,7 @@
         "Ownable"
       ]
     },
-    "/home/nishant/proofchain/contracts/node_modules/@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol": {
-      "lastModificationDate": 1751563337216,
-      "contentHash": "29c520cd24ad9a3f2c9cf285fee25f05",
-      "sourceName": "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "AggregatorV3Interface"
-      ]
-    },
-    "/home/nishant/proofchain/contracts/node_modules/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol": {
+    "/home/nishant/proofchain/contracts-hardhat/node_modules/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol": {
       "lastModificationDate": 1751563336102,
       "contentHash": "1ccd3348ad628f1330ce36eb6a30618d",
       "sourceName": "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol",
@@ -184,7 +114,77 @@
         "MerkleProof"
       ]
     },
-    "/home/nishant/proofchain/contracts/node_modules/@openzeppelin/contracts/utils/Context.sol": {
+    "/home/nishant/proofchain/contracts-hardhat/node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol": {
+      "lastModificationDate": 1751563336150,
+      "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
+      "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ReentrancyGuard"
+      ]
+    },
+    "/home/nishant/proofchain/contracts-hardhat/node_modules/@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol": {
+      "lastModificationDate": 1751563337216,
+      "contentHash": "29c520cd24ad9a3f2c9cf285fee25f05",
+      "sourceName": "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "AggregatorV3Interface"
+      ]
+    },
+    "/home/nishant/proofchain/contracts-hardhat/node_modules/@openzeppelin/contracts/utils/Context.sol": {
       "lastModificationDate": 1751563335098,
       "contentHash": "5f2c5c4b6af2dd4551027144797bc8be",
       "sourceName": "@openzeppelin/contracts/utils/Context.sol",

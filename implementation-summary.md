@@ -243,6 +243,19 @@ The contract underwent thorough testing and optimization:
 - Gas optimization through efficient data structures and algorithms
 - Hardhat compilation and verification
 
+### Ethers.js Version Compatibility
+
+During the development process, we encountered and resolved a compatibility issue between newer versions of Hardhat (which uses ethers.js v6) and deployment scripts written for ethers.js v5:
+
+**Issue**: The deployment script was using the older ethers.js v5 syntax (`contract.deployed()` and `contract.address`), which caused errors like `TypeError: proofChain.deployed is not a function` when deploying with newer Hardhat versions.
+
+**Solution**: Updated the deployment script to use ethers.js v6 compatible methods:
+
+- Replaced `await contract.deployed()` with `await contract.waitForDeployment()`
+- Replaced `contract.address` with `await contract.getAddress()`
+
+This change ensures compatibility with the latest versions of Hardhat and ethers.js, making the deployment process more robust and future-proof.
+
 ### Quadratic Voting
 
 Implemented a quadratic voting system where:

@@ -16,15 +16,19 @@ async function main() {
   );
   const proofChain = await ProofChain.deploy(merkleRoot);
 
-  await proofChain.deployed();
+  // Wait for the contract to be deployed
+  await proofChain.waitForDeployment();
 
-  console.log(`ProofChainMultiTokenVoting deployed to: ${proofChain.address}`);
+  // Get the contract address
+  const proofChainAddress = await proofChain.getAddress();
+
+  console.log(`ProofChainMultiTokenVoting deployed to: ${proofChainAddress}`);
   console.log("Contract deployment completed successfully!");
 
   // Log deployment information for verification
   console.log("\nTo verify on Etherscan:");
   console.log(
-    `npx hardhat verify --network ${hre.network.name} ${proofChain.address} "${merkleRoot}"`
+    `npx hardhat verify --network ${hre.network.name} ${proofChainAddress} "${merkleRoot}"`
   );
 }
 
