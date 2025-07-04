@@ -176,9 +176,14 @@ export const parseErrorMessage = (error) => {
 
   // Handle axios error
   if (error.response && error.response.data) {
-    const { message, error: errorMsg } = error.response.data;
-    return message || errorMsg || error.response.data;
+    const { message, error: errorMsg, details } = error.response.data;
+
+    if (details && Array.isArray(details) && details.length > 0) {
+      return details.map((d) => d.message).join("\n");
+    }
+    return message || errorMsg || JSON.stringify(error.response.data);
   }
+
 
   // Handle ethers.js error
   if (error.reason) {

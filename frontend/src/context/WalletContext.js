@@ -121,30 +121,34 @@ export const WalletProvider = ({ children }) => {
   }, [handleAccountsChanged]);
 
   const connect = async () => {
-    console.log("Connect function called");
+    console.log("WalletContext: connect function called");
 
     if (!window.ethereum) {
-      console.error("No Ethereum wallet found. Please install MetaMask.");
+      console.error("WalletContext: No Ethereum wallet found. Please install MetaMask.");
       setError("No Ethereum wallet found. Please install MetaMask.");
       return false;
     }
 
     try {
-      console.log("Requesting accounts...");
-      // Request account access
+      console.log("WalletContext: Requesting accounts via eth_requestAccounts...");
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
 
-      console.log("Accounts received:", accounts);
+      console.log("WalletContext: Accounts received:", accounts);
+      if (accounts.length === 0) {
+        console.log("WalletContext: No accounts connected.");
+        setError("No accounts connected. Please connect an account in MetaMask.");
+        return false;
+      }
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       const address = await signer.getAddress();
       const network = await provider.getNetwork();
 
-      console.log("Connected to network:", network);
-      console.log("Connected with address:", address);
+      console.log("WalletContext: Connected to network:", network);
+      console.log("WalletContext: Connected with address:", address);
 
       setProvider(provider);
       setSigner(signer);
@@ -153,12 +157,12 @@ export const WalletProvider = ({ children }) => {
       setIsConnected(true);
       setError(null);
 
-      // Authenticate with the backend
+      console.log("WalletContext: Authenticating with backend after successful connection.");
       await authenticateWithBackend(address);
 
       return true;
     } catch (error) {
-      console.error("Error connecting to wallet:", error);
+      console.error("WalletContext: Error connecting to wallet:", error);
       setError(error.message);
       return false;
     }

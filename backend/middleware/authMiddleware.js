@@ -8,6 +8,14 @@ const { UserProfile } = require("../models");
  * @param {Function} next - Express next function
  */
 const protect = async (req, res, next) => {
+  // Temporarily bypass authentication in development mode if BYPASS_AUTH is true
+  if (process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true") {
+    console.log("Development mode: Bypassing authentication");
+    // Mock a user object for subsequent middleware/controllers that might rely on req.user
+    req.user = { address: "0xMockUserAddressForDev", isVerified: true }; // isVerified: true to bypass verifiedOnly middleware too
+    return next();
+  }
+
   let token;
 
   // Check for token in Authorization header

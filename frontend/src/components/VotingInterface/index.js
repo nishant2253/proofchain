@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import useWallet from "../../hooks/useWallet";
 import { getSupportedTokens, submitVote, getVoteStatus } from "../../utils/api";
-import { generateCommitHash, generateRandomSalt } from "../../utils/blockchain";
+import { generateCommitHash, generateRandomSalt, getContract } from "../../utils/blockchain";
 import {
   parseErrorMessage,
   formatDate,
@@ -188,27 +188,78 @@ const VotingInterface = ({ content, onVoteComplete }) => {
       const salt = generateRandomSalt();
 
       // Generate commit hash
-      const vote = commitForm.vote === "true";
+      const vote = commitForm.vote === "true" ? 1 : 0;
       const confidence = parseInt(commitForm.confidence);
-      const commitHash = generateCommitHash(vote, confidence, salt);
+      const tokenType = parseInt(commitForm.tokenType);
+      const stakeAmount = commitForm.stakeAmount;
 
-      // Mock merkleProof for development
-      const mockMerkleProof = [
-        "0x0000000000000000000000000000000000000000000000000000000000000000",
-      ];
+      // Get selected token details to determine decimals
+      const selectedToken = supportedTokens.find(
+        (token) => token.tokenType === tokenType
+      );
+      if (!selectedToken) {
+        throw new Error("Selected token not found.");
+      }
 
-      // Prepare data for API
-      const commitData = {
+      const commitHash = generateCommitHash(
         vote,
         confidence,
         salt,
-        commitHash,
-        tokenType: parseInt(commitForm.tokenType),
-        stakeAmount: commitForm.stakeAmount,
-        merkleProof: mockMerkleProof, // Add mock merkleProof
+        address,
+        tokenType
+      );
+
+      // Mock merkleProof for development (or use real one if available)
+      const merkleProof = [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+      ];
+
+      // Convert stakeAmount to BigNumber based on token decimals
+      const stakeAmountWei = ethers.utils.parseUnits(
+        stakeAmount,
+        selectedToken.decimals
+      );
+
+      // Interact with smart contract
+      const contract = getContract(signer);
+
+      let tx;
+      if (tokenType === 1) {
+        // ETH token type
+        tx = await contract.commitMultiTokenVote(
+          content.contentId,
+          commitHash,
+          tokenType,
+          stakeAmountWei,
+          merkleProof,
+          { value: stakeAmountWei }
+        );
+      } else {
+        // Other ERC-20 tokens (requires prior approval)
+        // For now, we'll assume approval is handled or not needed for mock tokens
+        tx = await contract.commitMultiTokenVote(
+          content.contentId,
+          commitHash,
+          tokenType,
+          stakeAmountWei,
+          merkleProof
+        );
+      }
+
+      const receipt = await tx.wait();
+      const transactionHash = receipt.transactionHash;
+
+      // Prepare data for API (backend will store transaction hash)
+      const commitData = {
+        vote,
+        confidence,
+        tokenType,
+        stakeAmount,
+        merkleProof,
+        transactionHash, // Send the actual transaction hash
       };
 
-      // Submit commit vote
+      // Submit commit vote to backend
       await submitVote(content._id, { ...commitData, type: "commit" });
 
       setSuccess(
@@ -243,7 +294,7 @@ const VotingInterface = ({ content, onVoteComplete }) => {
     try {
       // Prepare data for API
       const revealData = {
-        vote: revealForm.vote === "true",
+        vote: revealForm.vote === "true" ? 1 : 0,
         confidence: parseInt(revealForm.confidence),
         salt: revealForm.salt,
       };

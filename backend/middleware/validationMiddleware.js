@@ -10,7 +10,9 @@ const validateBody = (schema) => {
 
     if (error) {
       res.status(400);
-      throw new Error(error.details[0].message);
+      const err = new Error(error.details[0].message);
+      err.details = error.details; // Attach Joi details
+      throw err;
     }
 
     next();
@@ -27,7 +29,9 @@ const validateQuery = (schema) => {
 
     if (error) {
       res.status(400);
-      throw new Error(error.details[0].message);
+      const err = new Error(error.details[0].message);
+      err.details = error.details; // Attach Joi details
+      throw err;
     }
 
     next();
@@ -44,7 +48,9 @@ const validateParams = (schema) => {
 
     if (error) {
       res.status(400);
-      throw new Error(error.details[0].message);
+      const err = new Error(error.details[0].message);
+      err.details = error.details; // Attach Joi details
+      throw err;
     }
 
     next();
@@ -82,7 +88,7 @@ const schemas = {
 
   commitVote: Joi.object({
     vote: Joi.number().integer().min(0).max(2).required(),
-    confidence: Joi.number().integer().min(60).max(100).required(),
+    confidence: Joi.number().integer().min(1).max(10).required(),
     tokenType: Joi.number().integer().min(0).max(7).required(),
     stakeAmount: Joi.string().required(),
     merkleProof: Joi.array().items(Joi.string()).required(),
@@ -90,7 +96,7 @@ const schemas = {
 
   revealVote: Joi.object({
     vote: Joi.number().integer().min(0).max(2).required(),
-    confidence: Joi.number().integer().min(60).max(100).required(),
+    confidence: Joi.number().integer().min(1).max(10).required(),
     salt: Joi.string().required(),
   }),
 

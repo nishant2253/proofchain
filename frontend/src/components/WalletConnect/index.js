@@ -34,16 +34,7 @@ const WalletConnect = () => {
       return;
     }
 
-    const success = await connect();
-    if (!success && !SUPPORTED_CHAINS.find((chain) => chain.id === chainId)) {
-      // If connection failed due to wrong chain, prompt to switch
-      const confirmed = window.confirm(
-        "Please switch to a supported network (Ethereum Mainnet, Goerli, or Sepolia)"
-      );
-      if (confirmed) {
-        handleChainSwitch(SUPPORTED_CHAINS[0].id);
-      }
-    }
+    await connect();
   };
 
   const handleChainSwitch = async (targetChainId) => {

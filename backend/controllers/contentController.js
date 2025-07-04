@@ -126,7 +126,7 @@ const listContent = asyncHandler(async (req, res) => {
  */
 const commitVoteForContent = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { vote, confidence, tokenType, stakeAmount, merkleProof } = req.body;
+  const { vote, confidence, tokenType, stakeAmount, merkleProof, transactionHash } = req.body;
 
   // In development mode, we'll provide a mock merkleProof if it's not provided
   let proofToUse = merkleProof;
@@ -138,35 +138,27 @@ const commitVoteForContent = asyncHandler(async (req, res) => {
     ];
   }
 
+  console.log("Received commit vote request:");
+  console.log("  vote:", vote);
+  console.log("  confidence:", confidence);
+  console.log("  tokenType:", tokenType);
+  console.log("  stakeAmount:", stakeAmount);
+  console.log("  merkleProof:", merkleProof);
+  console.log("  proofToUse:", proofToUse);
+  console.log("  transactionHash:", transactionHash);
+
   if (
     vote === undefined ||
-    !confidence ||
-    !tokenType ||
-    !stakeAmount ||
-    !proofToUse
+    confidence === undefined ||
+    tokenType === undefined ||
+    stakeAmount === undefined ||
+    !proofToUse ||
+    !transactionHash
   ) {
     res.status(400);
     throw new Error(
-      "Vote, confidence, tokenType, stakeAmount, and merkleProof are required"
+      "Vote, confidence, tokenType, stakeAmount, merkleProof, and transactionHash are required"
     );
-  }
-
-  // Create signer from private key (in a real app, this would be from the frontend wallet)
-  // This is just for demo purposes
-  let wallet;
-
-  // Check if blockchain is disabled
-  if (process.env.DISABLE_BLOCKCHAIN === "true") {
-    console.log("Blockchain disabled. Using mock wallet.");
-    wallet = {
-      address: "0x1234567890123456789012345678901234567890",
-    };
-  } else {
-    // Create signer from private key
-    const provider = new ethers.providers.JsonRpcProvider(
-      process.env.BLOCKCHAIN_RPC_URL
-    );
-    wallet = new ethers.Wallet(process.env.DEMO_PRIVATE_KEY, provider);
   }
 
   const result = await commitVote(
@@ -176,7 +168,7 @@ const commitVoteForContent = asyncHandler(async (req, res) => {
     parseInt(tokenType),
     stakeAmount,
     proofToUse,
-    wallet
+    transactionHash
   );
 
   res.json(result);

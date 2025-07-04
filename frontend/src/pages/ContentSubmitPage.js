@@ -15,14 +15,20 @@ const ContentSubmitPage = () => {
     contentUrl: "",
     contentType: "article",
     votingDuration: 3, // Default 3 days
+    file: null, // New: for file upload
+    tags: "", // New: for tags input
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, files } = e.target;
+    if (name === "file") {
+      setFormData((prev) => ({ ...prev, [name]: files[0] }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -44,16 +50,22 @@ const ContentSubmitPage = () => {
       formDataToSend.append("title", formData.title);
       formDataToSend.append("description", formData.description);
       formDataToSend.append("contentType", formData.contentType);
+      formDataToSend.append("tags", formData.tags); // Add tags
 
       // Convert voting duration from days to seconds (minimum 24 hours = 86400 seconds)
       const votingDurationSeconds = parseInt(formData.votingDuration) * 86400;
       formDataToSend.append("votingDuration", votingDurationSeconds);
 
-      // Create a simple text file with the content URL
-      const contentUrlBlob = new Blob([formData.contentUrl], {
-        type: "text/plain",
-      });
-      formDataToSend.append("file", contentUrlBlob, "content-url.txt");
+      // Append the actual file
+      if (formData.file) {
+        formDataToSend.append("file", formData.file, formData.file.name);
+      } else {
+        // Fallback if no file is selected, use contentUrl as a text file
+        const contentUrlBlob = new Blob([formData.contentUrl], {
+          type: "text/plain",
+        });
+        formDataToSend.append("file", contentUrlBlob, "content-url.txt");
+      }
 
       console.log("Submitting content with FormData:", {
         title: formData.title,
@@ -150,23 +162,42 @@ const ContentSubmitPage = () => {
 
         <div>
           <label
-            htmlFor="contentUrl"
+            htmlFor="file"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Content URL
+            Content File
           </label>
           <input
-            type="url"
-            id="contentUrl"
-            name="contentUrl"
-            value={formData.contentUrl}
+            type="file"
+            id="file"
+            name="file"
             onChange={handleChange}
             required
-            className="input-field"
-            placeholder="https://example.com/your-content"
+            className="input-field file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Provide a URL to the content you want to verify
+            Upload the actual content file (image, video, document, etc.)
+          </p>
+        </div>
+
+        <div>
+          <label
+            htmlFor="tags"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Tags (comma-separated)
+          </label>
+          <input
+            type="text"
+            id="tags"
+            name="tags"
+            value={formData.tags}
+            onChange={handleChange}
+            className="input-field"
+            placeholder="e.g., blockchain, AI, news"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Add relevant keywords to categorize your content
           </p>
         </div>
 

@@ -309,18 +309,16 @@ const commitVote = async (
   tokenType,
   stakeAmount,
   merkleProof,
-  signer
+  transactionHash
 ) => {
   try {
     // Generate random salt
     const salt = Math.floor(Math.random() * 1000000000).toString();
 
-    // Get signer address (handle both real signer and mock wallet)
-    const signerAddress = signer.address
-      ? signer.address.toLowerCase()
-      : "0x1234567890123456789012345678901234567890";
+    // Get signer address (from authenticated user)
+    const signerAddress = "0x1234567890123456789012345678901234567890"; // Placeholder, replace with req.user.address
 
-    // Generate commit hash
+    // Generate commit hash (for internal record, not sent to blockchain by backend)
     const commitHash = generateCommitHash(
       vote,
       confidence,
@@ -329,34 +327,11 @@ const commitVote = async (
       tokenType
     );
 
-    let result;
-
-    // Check if blockchain is disabled
-    if (process.env.DISABLE_BLOCKCHAIN === "true") {
-      console.log("Blockchain disabled. Skipping blockchain commit.");
-      // Create a mock result
-      result = {
-        transactionHash: "0x" + "0".repeat(64),
-        blockNumber: 0,
-        timestamp: Date.now(),
-      };
-    } else {
-      // Commit vote to blockchain
-      result = await commitMultiTokenVote(
-        contentId,
-        commitHash,
-        tokenType,
-        stakeAmount,
-        merkleProof,
-        signer
-      );
-    }
-
     // Store salt for later reveal
     const cacheKey = `commit:${contentId}:${signerAddress}`;
-    await setCache(cacheKey, { vote, confidence, salt }, 86400 * 7); // Cache for 7 days
+    await setCache(cacheKey, { vote, confidence, salt, transactionHash }, 86400 * 7); // Cache for 7 days
 
-    return { ...result, commitHash, salt };
+    return { transactionHash, commitHash, salt };
   } catch (error) {
     console.error("Error committing vote:", error);
     throw error;

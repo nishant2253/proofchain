@@ -221,45 +221,7 @@ const submitContent = async (ipfsHash, votingDuration, signer) => {
   }
 };
 
-/**
- * Commit vote to the blockchain
- */
-const commitMultiTokenVote = async (
-  contentId,
-  commitHash,
-  tokenType,
-  stakeAmount,
-  merkleProof,
-  signer
-) => {
-  try {
-    // Check if blockchain is disabled
-    if (process.env.DISABLE_BLOCKCHAIN === "true") {
-      console.log("Blockchain disabled. Returning mock vote commitment.");
-      return { transactionHash: "0x" + Date.now().toString() };
-    }
 
-    const { contract } = initializeBlockchain();
-    const contractWithSigner = contract.connect(signer);
-
-    const isETH = tokenType === TOKEN_TYPES.ETH;
-
-    const tx = await contractWithSigner.commitMultiTokenVote(
-      contentId,
-      commitHash,
-      tokenType,
-      stakeAmount,
-      merkleProof,
-      { value: isETH ? stakeAmount : 0 }
-    );
-
-    const receipt = await tx.wait();
-    return { transactionHash: receipt.transactionHash };
-  } catch (error) {
-    console.error("Failed to commit vote:", error);
-    throw error;
-  }
-};
 
 /**
  * Reveal vote on the blockchain
@@ -460,7 +422,6 @@ module.exports = {
   initializeBlockchain,
   initializeEventListeners,
   submitContent,
-  commitMultiTokenVote,
   revealMultiTokenVote,
   finalizeMultiTokenVoting,
   getMultiTokenResults,

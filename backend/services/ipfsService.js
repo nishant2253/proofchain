@@ -4,15 +4,15 @@ const { setCache, getCache } = require("../utils/redis");
 const crypto = require("crypto");
 
 // IPFS gateway URLs
-const IPFS_GATEWAY_URL = process.env.IPFS_GATEWAY || "https://ipfs.io/ipfs/";
+const IPFS_GATEWAY_URL =
+  process.env.IPFS_GATEWAY ||
+  "https://amaranth-genetic-bear-101.mypinata.cloud/ipfs/";
 const IPFS_API_URL =
-  process.env.IPFS_API_URL || "https://ipfs.infura.io:5001/api/v0";
+  process.env.IPFS_API_URL || "https://api.pinata.cloud/pinning";
 
 // Flag to use mock IPFS in development
 const USE_MOCK_IPFS =
-  !process.env.IPFS_PROJECT_ID ||
-  !process.env.IPFS_PROJECT_SECRET ||
-  process.env.NODE_ENV === "development";
+  !process.env.IPFS_PROJECT_ID || !process.env.IPFS_API_SECRET;
 
 // Mock IPFS storage for development
 const mockIpfsStorage = new Map();
@@ -46,27 +46,34 @@ const uploadToIPFS = async (fileBuffer, fileName) => {
       return hash;
     }
 
-    const formData = new FormData();
+    const formData = new FormData(); // <-- Re-added this line
     formData.append("file", fileBuffer, { filename: fileName });
 
-    // In a real implementation, you would use Infura API key or other IPFS service
-    const response = await axios.post(`${IPFS_API_URL}/add`, formData, {
+    const response = await axios.post(`${IPFS_API_URL}/pinFileToIPFS`, formData, {
       headers: {
         ...formData.getHeaders(),
-        Authorization: `Basic ${Buffer.from(
-          process.env.IPFS_PROJECT_ID + ":" + process.env.IPFS_PROJECT_SECRET
-        ).toString("base64")}`,
+        Authorization: `Bearer ${process.env.IPFS_API_SECRET}`,
       },
     });
 
-    if (response.data && response.data.Hash) {
-      console.log(`Content uploaded to IPFS with hash: ${response.data.Hash}`);
-      return response.data.Hash;
+    if (response.data && response.data.IpfsHash) {
+      console.log(`Content uploaded to IPFS with hash: ${response.data.IpfsHash}`);
+      return response.data.IpfsHash;
     } else {
+      console.error("Pinata response did not contain Hash field. Full response data:", response.data);
       throw new Error("Failed to get IPFS hash from response");
     }
   } catch (error) {
-    console.error("Error uploading to IPFS:", error);
+    console.error("Error uploading to IPFS:", error.message);
+    if (error.response) {
+      console.error("Pinata response status:", error.response.status);
+      console.error("Pinata response data:", error.response.data);
+      console.error("Pinata response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Pinata request data:", error.request);
+    } else {
+      console.error("Error message:", error.message);
+    }
     throw new Error(`Failed to upload to IPFS: ${error.message}`);
   }
 };
@@ -95,23 +102,31 @@ const uploadMetadataToIPFS = async (metadata) => {
     const metadataBuffer = Buffer.from(JSON.stringify(metadata));
     formData.append("file", metadataBuffer, { filename: "metadata.json" });
 
-    const response = await axios.post(`${IPFS_API_URL}/add`, formData, {
+    const response = await axios.post(`${IPFS_API_URL}/pinFileToIPFS`, formData, {
       headers: {
         ...formData.getHeaders(),
-        Authorization: `Basic ${Buffer.from(
-          process.env.IPFS_PROJECT_ID + ":" + process.env.IPFS_PROJECT_SECRET
-        ).toString("base64")}`,
+        Authorization: `Bearer ${process.env.IPFS_API_SECRET}`,
       },
     });
 
-    if (response.data && response.data.Hash) {
-      console.log(`Metadata uploaded to IPFS with hash: ${response.data.Hash}`);
-      return response.data.Hash;
+    if (response.data && response.data.IpfsHash) {
+      console.log(`Metadata uploaded to IPFS with hash: ${response.data.IpfsHash}`);
+      return response.data.IpfsHash;
     } else {
+      console.error("Pinata metadata response did not contain Hash field. Full response data:", response.data);
       throw new Error("Failed to get IPFS hash from response");
     }
   } catch (error) {
-    console.error("Error uploading metadata to IPFS:", error);
+    console.error("Error uploading metadata to IPFS:", error.message);
+    if (error.response) {
+      console.error("Pinata response status:", error.response.status);
+      console.error("Pinata response data:", error.response.data);
+      console.error("Pinata response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Pinata request data:", error.request);
+    } else {
+      console.error("Error message:", error.message);
+    }
     throw new Error(`Failed to upload metadata to IPFS: ${error.message}`);
   }
 };
@@ -139,14 +154,16 @@ const getFromIPFS = async (ipfsHash) => {
     // Try multiple gateways in case one fails
     const gateways = [
       `${IPFS_GATEWAY_URL}${ipfsHash}`,
-      `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`,
-      `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
+      // `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`,
+      `https://amaranth-genetic-bear-101.mypinata.cloud/ipfs/${ipfsHash}`,
     ];
 
     let data = null;
     let error = null;
 
+    console.log(`Attempting to fetch IPFS hash: ${ipfsHash}`);
     for (const gateway of gateways) {
+      console.log(`  Trying gateway: ${gateway}`);
       try {
         const response = await axios.get(gateway);
         data = response.data;
@@ -189,9 +206,7 @@ const pinToIPFS = async (ipfsHash) => {
       {},
       {
         headers: {
-          Authorization: `Basic ${Buffer.from(
-            process.env.IPFS_PROJECT_ID + ":" + process.env.IPFS_PROJECT_SECRET
-          ).toString("base64")}`,
+          Authorization: `Bearer ${process.env.IPFS_API_SECRET}`,
         },
       }
     );
