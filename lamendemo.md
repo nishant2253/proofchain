@@ -22,6 +22,7 @@
    - MongoDB connection established
    - Redis connection (if enabled)
    - Blockchain services initialization
+6. Delete the Mongoose data if already exist otherwise harhat node will give erro
 
 ### Step 2: Start the Frontend Server
 

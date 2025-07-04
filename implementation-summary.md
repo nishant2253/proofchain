@@ -1473,3 +1473,56 @@ The fixes delivered the following benefits:
 3. **Improved Error Handling**:
    - Better logging and error messages for API calls
    - Graceful handling of missing parameters in development mode
+
+### 8. IPFS Upload Endpoint Mismatch (Initial 404)
+
+- **Problem:** Initial IPFS uploads failed with a `404 Not Found` error because the backend was calling an incorrect Pinata API endpoint (`/pinning/add`).
+- **Solution:** The `backend/services/ipfsService.js` file was updated to use the correct Pinata endpoint: `/pinning/pinFileToIPFS`.
+- **Risk Mitigation:** Ensured API documentation was consulted for correct endpoint usage.
+
+### 9. IPFS Upload Authentication Failure (401 Unauthorized)
+
+- **Problem:** Subsequent IPFS uploads resulted in a `401 Unauthorized` error, indicating an invalid or expired Pinata API Secret.
+- **Solution:** The `IPFS_API_SECRET` in `backend/.env` was updated with a newly generated, valid JWT from Pinata.
+- **Risk Mitigation:** Emphasized the importance of keeping API secrets up-to-date and secure.
+
+### 10. Frontend `authToken` Misconfiguration and `jwt malformed` Errors
+
+- **Problem:** The frontend's `authToken` in `localStorage` was mistakenly being set to the `IPFS_API_SECRET` (Pinata's JWT), leading to `JsonWebTokenError: jwt malformed` when the backend attempted to validate it as a user authentication token.
+- **Solution:** Clarified the distinct purposes of `IPFS_API_SECRET` (for Pinata API calls) and the user authentication JWT (issued by the backend for user sessions). The frontend's `WalletContext.js` was confirmed to correctly handle fetching and storing the user authentication JWT from the backend's `/api/users` endpoint.
+- **Risk Mitigation:** Educated on the proper use and separation of different JWTs within the application architecture.
+
+### 11. MetaMask Wallet Connection Issues
+
+- **Problem:** MetaMask was not consistently opening or prompting for connection, especially after disconnects or for certain networks.
+- **Solution:** The `handleConnect` function in `frontend/src/components/WalletConnect/index.js` was simplified to directly initiate the connection request without conditional chain-switching prompts. Extensive `console.log` statements were added to `frontend/src/context/WalletContext.js` to provide detailed tracing of the connection flow.
+- **Risk Mitigation:** Improved debugging visibility for wallet interaction issues.
+
+### 12. IPFS Response Data Parsing Error (Incorrect Key)
+
+- **Problem:** Even after correcting the endpoint, IPFS uploads failed with "Failed to get IPFS hash from response" because the backend was looking for `response.data.Hash` while Pinata returned `response.data.IpfsHash`.
+- **Solution:** The `backend/services/ipfsService.js` file was updated to correctly parse the Pinata response by looking for `response.data.IpfsHash`.
+- **Risk Mitigation:** Implemented more robust logging of raw API responses for easier debugging of unexpected data structures.
+
+### 13. Blockchain Transaction Gas Estimation Failure (`UNPREDICTABLE_GAS_LIMIT`)
+
+- **Problem:** Transactions to the Sepolia testnet failed with `UNPREDICTABLE_GAS_LIMIT` and "gas required exceeds allowance (0)", indicating either insufficient testnet funds or a contract reversion.
+- **Solution:** The primary solution for development was to transition to the Hardhat local network. This involved:
+    - Running `npx hardhat node` to start a local blockchain.
+    - Deploying the smart contract to the local node.
+    - Updating `BLOCKCHAIN_RPC_URL` and `CONTRACT_ADDRESS` in `backend/.env` to point to the local Hardhat instance.
+    - Updating `REACT_APP_CONTRACT_ADDRESS` and `REACT_APP_CHAIN_ID` in `frontend/.env` for the local Hardhat network.
+    - Importing pre-funded Hardhat accounts into MetaMask.
+- **Risk Mitigation:** Using a local development blockchain (Hardhat) eliminates dependencies on public testnet faucets and simplifies transaction testing by providing pre-funded accounts and a controlled environment.
+
+### 14. Backend `DEMO_PRIVATE_KEY` Security
+
+- **Problem:** Directly using a private key (`DEMO_PRIVATE_KEY`) in the backend's `.env` for signing transactions poses a critical security risk in production environments.
+- **Solution:** For local development, this setup is acceptable with Hardhat's pre-funded accounts. For production, user-initiated transactions should be signed by the frontend (MetaMask).
+- **Risk Mitigation:** Clearly documented that `DEMO_PRIVATE_KEY` is for development/demo purposes only.
+
+### 15. Authentication Bypass (`BYPASS_AUTH`)
+
+- **Problem:** The need to bypass authentication during development to streamline testing, which is a security vulnerability if used in production.
+- **Solution:** Implemented a temporary `BYPASS_AUTH=true` flag in `backend/.env` and modified the `protect` middleware in `backend/middleware/authMiddleware.js` to conditionally bypass authentication only in `development` mode.
+- **Risk Mitigation:** Explicitly stated that this bypass is for development only and must be disabled/removed for production deployments.
