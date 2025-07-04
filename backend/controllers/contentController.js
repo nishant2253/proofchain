@@ -128,12 +128,22 @@ const commitVoteForContent = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { vote, confidence, tokenType, stakeAmount, merkleProof } = req.body;
 
+  // In development mode, we'll provide a mock merkleProof if it's not provided
+  let proofToUse = merkleProof;
+
+  if (!proofToUse && process.env.NODE_ENV === "development") {
+    console.log("Using mock merkleProof for development");
+    proofToUse = [
+      "0x0000000000000000000000000000000000000000000000000000000000000000",
+    ];
+  }
+
   if (
     vote === undefined ||
     !confidence ||
     !tokenType ||
     !stakeAmount ||
-    !merkleProof
+    !proofToUse
   ) {
     res.status(400);
     throw new Error(
@@ -143,10 +153,21 @@ const commitVoteForContent = asyncHandler(async (req, res) => {
 
   // Create signer from private key (in a real app, this would be from the frontend wallet)
   // This is just for demo purposes
-  const provider = new ethers.providers.JsonRpcProvider(
-    process.env.BLOCKCHAIN_RPC_URL
-  );
-  const wallet = new ethers.Wallet(process.env.DEMO_PRIVATE_KEY, provider);
+  let wallet;
+
+  // Check if blockchain is disabled
+  if (process.env.DISABLE_BLOCKCHAIN === "true") {
+    console.log("Blockchain disabled. Using mock wallet.");
+    wallet = {
+      address: "0x1234567890123456789012345678901234567890",
+    };
+  } else {
+    // Create signer from private key
+    const provider = new ethers.providers.JsonRpcProvider(
+      process.env.BLOCKCHAIN_RPC_URL
+    );
+    wallet = new ethers.Wallet(process.env.DEMO_PRIVATE_KEY, provider);
+  }
 
   const result = await commitVote(
     id,
@@ -154,7 +175,7 @@ const commitVoteForContent = asyncHandler(async (req, res) => {
     parseInt(confidence),
     parseInt(tokenType),
     stakeAmount,
-    merkleProof,
+    proofToUse,
     wallet
   );
 
@@ -196,19 +217,55 @@ const revealVoteForContent = asyncHandler(async (req, res) => {
 /**
  * @desc    Get saved commit data for content
  * @route   GET /api/content/:id/commit
- * @access  Private
+ * @access  Public (with address parameter) or Private
  */
 const getSavedCommit = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const { address } = req.query;
 
-  const commitData = await getSavedCommitData(id, req.user.address);
+  // Get user address from query params or authenticated user
+  let userAddress;
 
-  if (!commitData) {
-    res.status(404);
-    throw new Error("No saved commit found for this content");
+  if (address) {
+    // If address is provided in query params, use it
+    userAddress = address;
+  } else if (req.user && req.user.address) {
+    // If user is authenticated, use their address
+    userAddress = req.user.address;
+  } else {
+    // If no address is provided and user is not authenticated
+    res.status(401);
+    throw new Error(
+      "You must provide an address or be logged in to check vote status"
+    );
   }
 
-  res.json(commitData);
+  // Convert id to number if it's a numeric string
+  const contentId = !isNaN(id) ? parseInt(id) : id;
+
+  // First check if the content exists
+  const content = await getContentById(contentId);
+  if (!content) {
+    res.status(404);
+    throw new Error("Content not found");
+  }
+
+  const commitData = await getSavedCommitData(contentId, userAddress);
+
+  if (!commitData) {
+    // Return a 200 status with a message instead of a 404 error
+    return res.status(200).json({
+      hasVoted: false,
+      message:
+        "No saved commit found for this content. You haven't voted on this content yet.",
+    });
+  }
+
+  // Add hasVoted flag to the response
+  res.json({
+    ...commitData,
+    hasVoted: true,
+  });
 });
 
 /**

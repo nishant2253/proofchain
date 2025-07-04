@@ -95,10 +95,21 @@ export const getTokenDistribution = () => api.get("/tokens/distribution");
 // Consensus endpoints
 export const getConsensusStats = () => api.get("/consensus/stats");
 export const getVotingTimeline = () => api.get("/consensus/timeline");
-export const submitVote = (contentId, voteData) =>
-  api.post(`/consensus/${contentId}/vote`, voteData);
+export const submitVote = (contentId, voteData) => {
+  // Use the correct endpoint based on the vote type
+  if (voteData.type === "commit") {
+    return api.post(`/content/${contentId}/commit`, voteData);
+  } else if (voteData.type === "reveal") {
+    return api.post(`/content/${contentId}/reveal`, voteData);
+  } else if (voteData.type === "finalize") {
+    return api.post(`/content/${contentId}/finalize`, voteData);
+  } else {
+    // Default fallback to the old endpoint
+    return api.post(`/consensus/${contentId}/vote`, voteData);
+  }
+};
 export const getVoteStatus = (contentId, address) =>
-  api.get(`/consensus/${contentId}/vote/${address}`);
+  api.get(`/content/${contentId}/commit`, { params: { address } });
 
 // IPFS endpoints
 export const uploadToIPFS = (file) => {

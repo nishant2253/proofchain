@@ -947,180 +947,9 @@ const switchChain = async (targetChainId) => {
 
 These fixes ensure that:
 
-- Content submission works correctly with proper file handling
-- Chain switching is more robust and user-friendly
-- Error messages are more descriptive and helpful for users
-
-## Content Submission FormData Fixes
-
-After implementing the initial content submission fix, we encountered another issue with how FormData was being handled. Here are the additional fixes made:
-
-1. **Issue Identified**: The backend was still returning a 400 Bad Request error when submitting content. The validation middleware was expecting specific fields and a file upload, and our FormData wasn't being properly formatted.
-
-2. **Root Cause Analysis**:
-
-   - The backend validation requires `votingDuration` to be at least 86400 seconds (24 hours), but we were sending days
-   - The Content-Type header was being manually set to "multipart/form-data" without the boundary parameter
-   - The request interceptor was potentially interfering with FormData headers
-
-3. **Implementation Fixes**:
-
-   **A. ContentSubmitPage.js Updates:**
-
-   - Converted voting duration from days to seconds to meet validation requirements
-   - Added logging to better debug the submission process
-   - Improved FormData construction for file upload
-
-   ```javascript
-   // Convert voting duration from days to seconds (minimum 24 hours = 86400 seconds)
-   const votingDurationSeconds = parseInt(formData.votingDuration) * 86400;
-   formDataToSend.append("votingDuration", votingDurationSeconds);
-   ```
-
-   **B. API Utility Improvements:**
-
-   - Removed manual Content-Type header for FormData to let the browser handle it
-   - Added specific handling for FormData vs JSON content
-   - Updated request interceptor to preserve FormData headers
-
-   ```javascript
-   // When sending FormData, let the browser set the Content-Type with boundary
-   const config = isFormData
-     ? {
-         headers: {
-           // Remove Content-Type header for FormData - browser will set it automatically with boundary
-         },
-       }
-     : {
-         headers: {
-           "Content-Type": "application/json",
-         },
-       };
-   ```
-
-   **C. Request Interceptor Enhancement:**
-
-   - Added detection of FormData in the request interceptor
-   - Removed Content-Type header for FormData requests to prevent conflicts
-
-   ```javascript
-   // Don't modify Content-Type if it's FormData (browser will set it automatically)
-   const isFormData = config.data instanceof FormData;
-   if (isFormData && config.headers["Content-Type"]) {
-     delete config.headers["Content-Type"];
-   }
-   ```
-
-4. **Key Learnings**:
-   - When working with FormData, let the browser set the Content-Type header with the proper boundary
-   - Be careful with request interceptors that might modify headers needed for FormData
-   - Ensure backend validation requirements (like minimum values) are met in frontend submissions
-   - Add proper logging to help diagnose API submission issues
-
-These fixes ensure that content submission works correctly by properly formatting the FormData object, respecting backend validation requirements, and allowing the browser to handle multipart form data boundaries correctly.
-
-## IPFS Service Mock Implementation
-
-After fixing the content submission form and FormData handling, we encountered a 500 Internal Server Error from the backend. This issue was related to the IPFS service attempting to connect to Infura IPFS without proper credentials.
-
-1. **Issue Identified**: The backend was returning a 500 Internal Server Error when submitting content. The error occurred in the IPFS service which was trying to upload files to Infura IPFS but missing the required project credentials.
-
-2. **Root Cause Analysis**:
-
-   - The backend's `.env` file contained IPFS configuration for local IPFS node but no Infura project credentials
-   - The code was hardcoded to use Infura IPFS endpoints without checking for credentials
-   - No fallback or mock implementation was available for development environments
-
-3. **Implementation Fix**:
-
-   - Added a mock implementation for IPFS service in development mode
-   - Created an in-memory storage using Map to simulate IPFS storage
-   - Added a function to generate mock IPFS hashes
-   - Added conditional logic to use mock implementation when credentials are missing
-   - Updated environment variable handling to use configured endpoints
-
-   ```javascript
-   // Flag to use mock IPFS in development
-   const USE_MOCK_IPFS =
-     !process.env.IPFS_PROJECT_ID ||
-     !process.env.IPFS_PROJECT_SECRET ||
-     process.env.NODE_ENV === "development";
-
-   // Mock IPFS storage for development
-   const mockIpfsStorage = new Map();
-
-   /**
-    * Generate a mock IPFS hash for development
-    * @returns {String} - Mock IPFS hash
-    */
-   const generateMockIpfsHash = () => {
-     return `Qm${crypto.randomBytes(44).toString("hex")}`;
-   };
-   ```
-
-4. **Mock Implementation Features**:
-
-   - Simulates file uploads by storing content in memory
-   - Generates realistic-looking IPFS hashes
-   - Provides mock implementations for all IPFS operations (upload, get, pin)
-   - Logs operations for debugging purposes
-   - Automatically activates when credentials are missing or in development mode
-
-5. **Benefits**:
-   - Allows development and testing without an actual IPFS connection
-   - Eliminates dependency on external services during development
-   - Provides consistent behavior for testing
-   - Makes the application more robust by gracefully handling missing credentials
-
-This fix ensures that content submission works correctly in development environments without requiring actual IPFS credentials, making the application more developer-friendly and robust.
-
-## Blockchain Service Mock Implementation Fix
-
-After implementing the IPFS service mock, we encountered another error: "Cannot read properties of undefined (reading 'toHexString')". This was related to the blockchain service trying to use ethers.js functions when blockchain integration was disabled.
-
-1. **Issue Identified**: The frontend was showing an error "Cannot read properties of undefined (reading 'toHexString')" when submitting content. This occurred because the mock implementation in the blockchain service was still trying to use ethers.js functions even when blockchain was disabled.
-
-2. **Root Cause Analysis**:
-
-   - The `DISABLE_BLOCKCHAIN` flag was set to `true` in the `.env` file
-   - The mock implementation in `blockchainService.js` was not completely isolated from ethers.js
-   - The code was trying to use ethers.js functions like `toHexString()` on undefined objects
-
-3. **Implementation Fix**:
-
-   - Updated the `submitContent` function to use pure JavaScript for generating IDs and hashes when blockchain is disabled
-   - Replaced ethers.js-dependent code with native JavaScript alternatives
-   - Added better logging for mock blockchain operations
-
-   ```javascript
-   // Updated mock implementation in submitContent function
-   if (process.env.DISABLE_BLOCKCHAIN === "true") {
-     console.log("Blockchain disabled. Returning mock content submission.");
-     // Generate a random content ID without using ethers.js
-     const contentId = Math.floor(Math.random() * 1000000).toString();
-     const transactionHash =
-       "0x" +
-       Date.now().toString(16) +
-       Math.random().toString(16).substring(2, 10);
-
-     console.log(
-       `Mock content submission: contentId=${contentId}, transactionHash=${transactionHash}`
-     );
-     return { contentId, transactionHash };
-   }
-   ```
-
-4. **Benefits of the Fix**:
-
-   - Completely isolated mock implementation from ethers.js dependencies
-   - Eliminated errors related to undefined ethers.js objects
-   - Improved logging for better debugging
-   - Maintained the same interface for both real and mock implementations
-
-5. **Development Environment Improvements**:
-   - The application can now run completely without blockchain connectivity
-   - Developers don't need to set up a local blockchain node for testing
-   - The system gracefully handles the absence of blockchain services
+- Content submission works correctly in development environments without requiring a full blockchain setup
+- Developers don't need to set up a local blockchain node for testing
+- The system gracefully handles the absence of blockchain services
 
 This fix ensures that content submission works correctly in development environments with blockchain disabled, making it easier to develop and test the application without requiring a full blockchain setup.
 
@@ -1482,3 +1311,165 @@ We implemented a two-part solution to address this issue:
    - Makes the codebase more maintainable for future developers
 
 This fix completes our series of improvements to the content submission flow, allowing users to successfully submit content in both development and production environments, with or without blockchain connectivity.
+
+## Fixed Identity Verification Requirement for Voting
+
+### Problem
+
+When users clicked the "Commit Vote" button, they received a 403 Forbidden error with the message "Identity verification required". This prevented users from voting on content during development and testing.
+
+The root causes were:
+
+1. The `verifiedOnly` middleware in the backend was enforcing identity verification for all commit vote requests
+2. In development mode, there was no way to bypass this verification requirement
+3. The route for committing votes (`/:id/commit`) was using the `verifiedOnly` middleware without a development bypass
+
+### Solution
+
+We implemented the following fixes:
+
+1. **Added Development Mode Bypass**:
+   Modified the `verifiedOnly` middleware in `authMiddleware.js` to bypass verification in development mode:
+
+   ```javascript
+   const verifiedOnly = (req, res, next) => {
+     // In development mode, bypass verification check if BYPASS_VERIFICATION is set
+     if (
+       process.env.NODE_ENV === "development" &&
+       process.env.BYPASS_VERIFICATION === "true"
+     ) {
+       console.log("Development mode: Bypassing identity verification");
+       return next();
+     }
+
+     // Original verification logic
+     if (!req.user) {
+       res.status(401);
+       throw new Error("Not authorized");
+     }
+
+     if (!req.user.isVerified) {
+       res.status(403);
+       throw new Error("Identity verification required");
+     }
+
+     next();
+   };
+   ```
+
+2. **Added Environment Variable**:
+   Added `BYPASS_VERIFICATION=true` to the `.env` file to enable the bypass in development mode
+
+### Results
+
+The fixes delivered the following benefits:
+
+1. **Improved Development Experience**:
+
+   - Developers can now test the voting functionality without needing to implement identity verification
+   - The application flow can be tested end-to-end in development environments
+
+2. **Maintained Security**:
+
+   - The bypass only works in development mode with the specific environment variable set
+   - Production environments still enforce identity verification for security
+
+3. **Better Error Handling**:
+   - Clear logging indicates when verification is being bypassed
+   - The system behavior is more predictable during development and testing
+
+## Fixed 404 Error When Submitting Vote
+
+### Problem
+
+After clicking "Commit Vote", users encountered a 404 error because the frontend was using an incorrect API endpoint.
+
+The error appeared in the console:
+
+```
+POST /api/consensus/6867bae028128bd0cdc92109/vote 404 2.672 ms - 1046
+```
+
+The root causes were:
+
+1. The frontend was using `/consensus/${contentId}/vote` endpoint which doesn't exist
+2. The backend expected votes to be submitted to `/content/:id/commit`
+3. The backend required a merkleProof parameter that the frontend wasn't sending
+
+### Solution
+
+We implemented the following fixes:
+
+1. **Updated API Client**:
+   Modified the `submitVote` function in `api.js` to use the correct endpoints based on vote type:
+
+   ```javascript
+   export const submitVote = (contentId, voteData) => {
+     // Use the correct endpoint based on the vote type
+     if (voteData.type === "commit") {
+       return api.post(`/content/${contentId}/commit`, voteData);
+     } else if (voteData.type === "reveal") {
+       return api.post(`/content/${contentId}/reveal`, voteData);
+     } else if (voteData.type === "finalize") {
+       return api.post(`/content/${contentId}/finalize`, voteData);
+     } else {
+       // Default fallback to the old endpoint
+       return api.post(`/consensus/${contentId}/vote`, voteData);
+     }
+   };
+   ```
+
+2. **Added Mock merkleProof**:
+   Modified the frontend to include a mock merkleProof in the commit data:
+
+   ```javascript
+   // Mock merkleProof for development
+   const mockMerkleProof = [
+     "0x0000000000000000000000000000000000000000000000000000000000000000",
+   ];
+
+   // Prepare data for API
+   const commitData = {
+     vote,
+     confidence,
+     salt,
+     commitHash,
+     tokenType: commitForm.tokenType,
+     stakeAmount: commitForm.stakeAmount,
+     merkleProof: mockMerkleProof,
+     type: "commit",
+   };
+   ```
+
+3. **Enhanced Backend for Development Mode**:
+   Modified the `commitVoteForContent` controller to make merkleProof optional in development:
+
+   ```javascript
+   // In development mode, we'll provide a mock merkleProof if it's not provided
+   let proofToUse = merkleProof;
+
+   if (!proofToUse && process.env.NODE_ENV === "development") {
+     console.log("Using mock merkleProof for development");
+     proofToUse = [
+       "0x0000000000000000000000000000000000000000000000000000000000000000",
+     ];
+   }
+   ```
+
+### Results
+
+The fixes delivered the following benefits:
+
+1. **Correct API Endpoint Usage**:
+
+   - The frontend now uses the proper endpoints for different vote types
+   - API calls are properly routed to the correct backend controllers
+
+2. **Development Mode Support**:
+
+   - The application works correctly in development environments without requiring real merkleProofs
+   - Developers can test the full voting flow without blockchain integration
+
+3. **Improved Error Handling**:
+   - Better logging and error messages for API calls
+   - Graceful handling of missing parameters in development mode

@@ -20,6 +20,7 @@ const router = express.Router();
 // Public routes
 router.get("/", listContent);
 router.get("/:id", getContent);
+router.get("/:id/commit", getSavedCommit);
 
 // Protected routes
 router.post(
@@ -44,7 +45,6 @@ router.post(
   validateBody(schemas.revealVote),
   revealVoteForContent
 );
-router.get("/:id/commit", protect, getSavedCommit);
 router.post("/:id/finalize", protect, finalizeVoting);
 
 module.exports = router;

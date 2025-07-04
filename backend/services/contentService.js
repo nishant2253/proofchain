@@ -299,7 +299,7 @@ const getContentList = async (options = {}) => {
  * @param {Number} tokenType - Token type
  * @param {String} stakeAmount - Stake amount
  * @param {Array} merkleProof - Merkle proof
- * @param {Object} signer - Ethers.js signer
+ * @param {Object} signer - Ethers.js signer or mock wallet object
  * @returns {Promise<Object>} - Transaction receipt
  */
 const commitVote = async (
@@ -315,27 +315,45 @@ const commitVote = async (
     // Generate random salt
     const salt = Math.floor(Math.random() * 1000000000).toString();
 
+    // Get signer address (handle both real signer and mock wallet)
+    const signerAddress = signer.address
+      ? signer.address.toLowerCase()
+      : "0x1234567890123456789012345678901234567890";
+
     // Generate commit hash
     const commitHash = generateCommitHash(
       vote,
       confidence,
       salt,
-      signer.address,
+      signerAddress,
       tokenType
     );
 
-    // Commit vote to blockchain
-    const result = await commitMultiTokenVote(
-      contentId,
-      commitHash,
-      tokenType,
-      stakeAmount,
-      merkleProof,
-      signer
-    );
+    let result;
+
+    // Check if blockchain is disabled
+    if (process.env.DISABLE_BLOCKCHAIN === "true") {
+      console.log("Blockchain disabled. Skipping blockchain commit.");
+      // Create a mock result
+      result = {
+        transactionHash: "0x" + "0".repeat(64),
+        blockNumber: 0,
+        timestamp: Date.now(),
+      };
+    } else {
+      // Commit vote to blockchain
+      result = await commitMultiTokenVote(
+        contentId,
+        commitHash,
+        tokenType,
+        stakeAmount,
+        merkleProof,
+        signer
+      );
+    }
 
     // Store salt for later reveal
-    const cacheKey = `commit:${contentId}:${signer.address.toLowerCase()}`;
+    const cacheKey = `commit:${contentId}:${signerAddress}`;
     await setCache(cacheKey, { vote, confidence, salt }, 86400 * 7); // Cache for 7 days
 
     return { ...result, commitHash, salt };
@@ -378,7 +396,7 @@ const revealVote = async (contentId, vote, confidence, salt, signer) => {
 
 /**
  * Get saved commit data for content
- * @param {Number} contentId - Content ID
+ * @param {Number|String} contentId - Content ID
  * @param {String} address - User address
  * @returns {Promise<Object>} - Commit data
  */
@@ -386,6 +404,9 @@ const getSavedCommitData = async (contentId, address) => {
   try {
     // Normalize address to lowercase
     address = address.toLowerCase();
+
+    // Ensure contentId is a number or string
+    contentId = !isNaN(contentId) ? parseInt(contentId) : contentId;
 
     // Check cache for saved commit data
     const cacheKey = `commit:${contentId}:${address}`;

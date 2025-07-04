@@ -15,9 +15,19 @@ const {
 const getAllTokens = asyncHandler(async (req, res) => {
   const { activeOnly } = req.query;
 
-  const tokens = await getSupportedTokens(activeOnly === "true");
+  console.log("getAllTokens called with activeOnly:", activeOnly);
 
-  res.json(tokens);
+  try {
+    const tokens = await getSupportedTokens(activeOnly === "true");
+    console.log("Tokens retrieved from service:", tokens ? tokens.length : 0);
+
+    res.json(tokens);
+  } catch (error) {
+    console.error("Error in getAllTokens controller:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to retrieve tokens", error: error.message });
+  }
 });
 
 /**

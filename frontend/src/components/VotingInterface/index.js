@@ -58,7 +58,7 @@ const VotingInterface = ({ content, onVoteComplete }) => {
   const fetchSavedCommit = useCallback(async () => {
     try {
       // Use getVoteStatus instead since getSavedCommitData is not available
-      const response = await getVoteStatus(content._id, address);
+      const response = await getVoteStatus(content.contentId, address);
       setSavedCommit(response);
 
       // Pre-fill reveal form with saved data if commit data exists
@@ -73,7 +73,7 @@ const VotingInterface = ({ content, onVoteComplete }) => {
       console.log("No saved commit found or error fetching commit data");
       // Not setting error state here as it's normal for a user to not have a saved commit
     }
-  }, [content._id, address]);
+  }, [content.contentId, address]);
 
   // Determine voting phase when content changes
   useEffect(() => {
@@ -91,22 +91,66 @@ const VotingInterface = ({ content, onVoteComplete }) => {
   // Check if user has already voted
   useEffect(() => {
     const checkExistingVote = async () => {
-      if (!isConnected || !address || !content._id) return;
+      if (!isConnected || !address || !content.contentId) return;
 
       try {
-        const voteStatus = await getVoteStatus(content._id, address);
-        if (voteStatus?.vote !== undefined) {
+        console.log(
+          "Checking vote status for content:",
+          content.contentId,
+          "address:",
+          address
+        );
+        const voteStatus = await getVoteStatus(content.contentId, address);
+        console.log("Vote status response:", voteStatus);
+
+        // Check if the user has voted using the hasVoted flag
+        if (voteStatus.hasVoted) {
           setExistingVote(voteStatus);
           setVote(voteStatus.vote);
           setConfidence(voteStatus.confidence);
+        } else {
+          // User hasn't voted yet - this is normal, not an error
+          console.log(
+            "User hasn't voted on this content yet:",
+            voteStatus.message
+          );
         }
       } catch (err) {
         console.error("Error checking vote status:", err);
+        console.error("Error details:", {
+          contentId: content.contentId,
+          address,
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+        });
+
+        // Handle different error types
+        if (err.response) {
+          if (err.response.status === 404) {
+            // Check if it's a "content not found" error
+            if (err.response.data?.message?.includes("Content not found")) {
+              setError("Error: This content does not exist in the database.");
+            }
+          } else if (err.response.status === 401) {
+            setError("You must be logged in to check your vote status.");
+          } else {
+            setError(
+              `Error checking vote status: ${
+                err.response.data?.message || "Please try again."
+              }`
+            );
+          }
+        } else {
+          setError(
+            "Network error. Please check your connection and try again."
+          );
+        }
       }
     };
 
     checkExistingVote();
-  }, [isConnected, address, content._id]);
+  }, [isConnected, address, content.contentId]);
 
   // Handle commit form changes
   const handleCommitChange = (e) => {
@@ -148,6 +192,11 @@ const VotingInterface = ({ content, onVoteComplete }) => {
       const confidence = parseInt(commitForm.confidence);
       const commitHash = generateCommitHash(vote, confidence, salt);
 
+      // Mock merkleProof for development
+      const mockMerkleProof = [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+      ];
+
       // Prepare data for API
       const commitData = {
         vote,
@@ -156,6 +205,7 @@ const VotingInterface = ({ content, onVoteComplete }) => {
         commitHash,
         tokenType: parseInt(commitForm.tokenType),
         stakeAmount: commitForm.stakeAmount,
+        merkleProof: mockMerkleProof, // Add mock merkleProof
       };
 
       // Submit commit vote
@@ -328,14 +378,30 @@ const VotingInterface = ({ content, onVoteComplete }) => {
           Your vote will be securely hashed and stored on the blockchain.
         </p>
 
+        {/* Debug information for tokens */}
+        <div className="bg-gray-50 p-3 mb-4 rounded text-xs">
+          <p>Available tokens: {supportedTokens.length}</p>
+          <ul>
+            {supportedTokens.map((token) => (
+              <li key={token.tokenType}>
+                {token.symbol} - {token.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+
         <form onSubmit={handleCommitSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="vote-approve"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Your Vote
             </label>
             <div className="flex space-x-4">
               <label className="flex items-center">
                 <input
+                  id="vote-approve"
                   type="radio"
                   name="vote"
                   value="true"
@@ -348,6 +414,7 @@ const VotingInterface = ({ content, onVoteComplete }) => {
               </label>
               <label className="flex items-center">
                 <input
+                  id="vote-reject"
                   type="radio"
                   name="vote"
                   value="false"
@@ -361,10 +428,14 @@ const VotingInterface = ({ content, onVoteComplete }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="confidence-slider"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Confidence Level (1-10)
             </label>
             <input
+              id="confidence-slider"
               type="range"
               name="confidence"
               min="1"
@@ -384,29 +455,41 @@ const VotingInterface = ({ content, onVoteComplete }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="token-type"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Token Type
             </label>
             <select
+              id="token-type"
               name="tokenType"
               value={commitForm.tokenType}
               onChange={handleCommitChange}
               className="input-field"
               required
             >
-              {supportedTokens.map((token) => (
-                <option key={token.tokenType} value={token.tokenType}>
-                  {token.symbol} - {token.name}
-                </option>
-              ))}
+              {supportedTokens && supportedTokens.length > 0 ? (
+                supportedTokens.map((token) => (
+                  <option key={token.tokenType} value={token.tokenType}>
+                    {token.symbol} - {token.name}
+                  </option>
+                ))
+              ) : (
+                <option value="0">Loading tokens...</option>
+              )}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="stake-amount"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Stake Amount
             </label>
             <input
+              id="stake-amount"
               type="number"
               name="stakeAmount"
               value={commitForm.stakeAmount}
@@ -465,12 +548,16 @@ const VotingInterface = ({ content, onVoteComplete }) => {
 
         <form onSubmit={handleRevealSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="reveal-vote-approve"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Your Vote
             </label>
             <div className="flex space-x-4">
               <label className="flex items-center">
                 <input
+                  id="reveal-vote-approve"
                   type="radio"
                   name="vote"
                   value="true"
@@ -483,6 +570,7 @@ const VotingInterface = ({ content, onVoteComplete }) => {
               </label>
               <label className="flex items-center">
                 <input
+                  id="reveal-vote-reject"
                   type="radio"
                   name="vote"
                   value="false"
@@ -496,10 +584,14 @@ const VotingInterface = ({ content, onVoteComplete }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="reveal-confidence"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Confidence Level (1-10)
             </label>
             <input
+              id="reveal-confidence"
               type="range"
               name="confidence"
               min="1"
@@ -514,10 +606,14 @@ const VotingInterface = ({ content, onVoteComplete }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="reveal-salt"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Salt
             </label>
             <input
+              id="reveal-salt"
               type="text"
               name="salt"
               value={revealForm.salt}

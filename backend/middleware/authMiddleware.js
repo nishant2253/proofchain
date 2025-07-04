@@ -46,6 +46,15 @@ const protect = async (req, res, next) => {
  * @param {Function} next - Express next function
  */
 const verifiedOnly = (req, res, next) => {
+  // In development mode, bypass verification check if BYPASS_VERIFICATION is set
+  if (
+    process.env.NODE_ENV === "development" &&
+    process.env.BYPASS_VERIFICATION === "true"
+  ) {
+    console.log("Development mode: Bypassing identity verification");
+    return next();
+  }
+
   if (!req.user) {
     res.status(401);
     throw new Error("Not authorized");

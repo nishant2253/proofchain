@@ -6,36 +6,95 @@ const mongoose = require("mongoose");
  */
 const connectDB = async () => {
   try {
-    // Use default MongoDB URI if environment variable is not set
-    const mongoURI =
-      process.env.MONGODB_URI || "mongodb://localhost:27017/proofchain";
+    let dbUri = process.env.MONGODB_URI;
+    let mongod = null;
 
-    // Check if MongoDB connection should be skipped (for testing)
-    if (process.env.DISABLE_MONGODB === "true") {
-      console.log("MongoDB connection disabled. Running in test mode.");
-      return null;
+    // Check if we should use in-memory MongoDB
+    if (
+      process.env.NODE_ENV === "development" &&
+      (!dbUri || dbUri.includes("localhost")) &&
+      process.env.USE_MEMORY_DB === "true" // Only use memory DB if explicitly enabled
+    ) {
+      try {
+        // Dynamically import MongoMemoryServer to avoid requiring it in production
+        const { MongoMemoryServer } = await import("mongodb-memory-server");
+        console.log("Using MongoDB Memory Server for development");
+        mongod = await MongoMemoryServer.create();
+        dbUri = mongod.getUri();
+      } catch (importError) {
+        console.warn(
+          "Failed to import mongodb-memory-server. Using configured MongoDB URI."
+        );
+        console.warn(
+          "To use in-memory MongoDB, run: npm install --save-dev mongodb-memory-server"
+        );
+      }
+    } else {
+      console.log(`Using MongoDB URI: ${dbUri}`);
     }
 
-    const conn = await mongoose.connect(mongoURI, {
+    const conn = await mongoose.connect(dbUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+
+    // Seed some initial data for development
+    if (mongod && process.env.NODE_ENV === "development") {
+      await seedInitialData();
+    }
+
     return conn;
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`);
-
-    // Don't exit in development mode
-    if (process.env.NODE_ENV === "production") {
-      process.exit(1);
-    } else {
-      console.log(
-        "Running without MongoDB connection. Some features will be unavailable."
-      );
-      return null;
-    }
+    console.error(
+      "Database operations will fail. Please check your MongoDB connection."
+    );
+    // Don't exit the process, let the application handle the error gracefully
+    return null;
   }
 };
+
+// Seed some initial data for development
+async function seedInitialData() {
+  try {
+    const { ContentItem } = require("../models");
+    const { VOTE_OPTIONS } = require("../utils/constants");
+
+    // Check if we already have content
+    const count = await ContentItem.countDocuments();
+    if (count > 0) {
+      console.log(
+        `Database already has ${count} content items. Skipping seed.`
+      );
+      return;
+    }
+
+    console.log("Seeding initial data...");
+
+    // Create a test content item
+    const now = new Date();
+    const testContent = new ContentItem({
+      contentId: 36731,
+      ipfsHash:
+        "Qm91e44adza7d852fb2e4c57c4399953fb864e318bf330421249a43361c8855e",
+      submissionTime: now,
+      commitDeadline: new Date(now.getTime() + 24 * 60 * 60 * 1000), // 1 day from now
+      revealDeadline: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+      title: "Test Content",
+      description: "This is a test content item for development",
+      contentType: "image",
+      contentUrl: "https://example.com/image.jpg",
+      creator: "0xf17cf1e4f18bbe29bdebe37eb3e9aa4c0437a3e5",
+      tags: ["test", "development"],
+    });
+
+    await testContent.save();
+    console.log("Test content created with ID:", testContent.contentId);
+  } catch (error) {
+    console.error("Error seeding initial data:", error);
+  }
+}
 
 module.exports = connectDB;
