@@ -84,6 +84,10 @@
    npm start
    ```
 
+10. Use the hardhat node private key(out of any 10 accounts) and add private key in metamask and
+    copy the metamask account private key and replace with DEMO_PRIVATE_KEY in .env for backend
+    and PRIVATE_KEY in contracts-hardhat .env file
+
 ## User Journey
 
 ### Step 1: Access the Application
