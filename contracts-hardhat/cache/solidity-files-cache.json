@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "/home/nishant/proofchain/contracts-hardhat/contracts/ProofChainMultiTokenVoting.sol": {
-      "lastModificationDate": 1751563434686,
-      "contentHash": "18399b01b859c6bab1133f5e487daa35",
+      "lastModificationDate": 1751727838439,
+      "contentHash": "ebaed7ccad6ff66851f5ce8fb08b224f",
       "sourceName": "contracts/ProofChainMultiTokenVoting.sol",
       "solcConfig": {
         "version": "0.8.19",

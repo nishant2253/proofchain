@@ -243,6 +243,13 @@ The contract underwent thorough testing and optimization:
 - Gas optimization through efficient data structures and algorithms
 - Hardhat compilation and verification
 
+### Content Submission & Event Handling Fixes
+
+- Modified the `ContentSubmitted` event in `ProofChainMultiTokenVoting.sol` to include the `creator` (msg.sender) as an indexed argument.
+- Updated the ABI definition in `backend/services/blockchainService.js` to reflect the new `ContentSubmitted` event signature.
+- Corrected the event listener in `backend/services/blockchainService.js` to properly extract the `creator` from `event.args`.
+- Ensured the `CONTRACT_ADDRESS` in `backend/.env.example` and `frontend/.env.example` is consistently updated with the latest deployed `ProofChainMultiTokenVoting` contract address to prevent `invalid address` errors.
+
 ### Ethers.js Version Compatibility
 
 During the development process, we encountered and resolved a compatibility issue between newer versions of Hardhat (which uses ethers.js v6) and deployment scripts written for ethers.js v5:
@@ -1508,11 +1515,11 @@ The fixes delivered the following benefits:
 
 - **Problem:** Transactions to the Sepolia testnet failed with `UNPREDICTABLE_GAS_LIMIT` and "gas required exceeds allowance (0)", indicating either insufficient testnet funds or a contract reversion.
 - **Solution:** The primary solution for development was to transition to the Hardhat local network. This involved:
-    - Running `npx hardhat node` to start a local blockchain.
-    - Deploying the smart contract to the local node.
-    - Updating `BLOCKCHAIN_RPC_URL` and `CONTRACT_ADDRESS` in `backend/.env` to point to the local Hardhat instance.
-    - Updating `REACT_APP_CONTRACT_ADDRESS` and `REACT_APP_CHAIN_ID` in `frontend/.env` for the local Hardhat network.
-    - Importing pre-funded Hardhat accounts into MetaMask.
+  - Running `npx hardhat node` to start a local blockchain.
+  - Deploying the smart contract to the local node.
+  - Updating `BLOCKCHAIN_RPC_URL` and `CONTRACT_ADDRESS` in `backend/.env` to point to the local Hardhat instance.
+  - Updating `REACT_APP_CONTRACT_ADDRESS` and `REACT_APP_CHAIN_ID` in `frontend/.env` for the local Hardhat network.
+  - Importing pre-funded Hardhat accounts into MetaMask.
 - **Risk Mitigation:** Using a local development blockchain (Hardhat) eliminates dependencies on public testnet faucets and simplifies transaction testing by providing pre-funded accounts and a controlled environment.
 
 ### 14. Backend `DEMO_PRIVATE_KEY` Security

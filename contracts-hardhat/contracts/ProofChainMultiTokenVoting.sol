@@ -114,7 +114,7 @@ contract ProofChainMultiTokenVoting is ReentrancyGuard, Ownable {
     
     // ==================== EVENTS ====================
     
-    event ContentSubmitted(uint256 indexed contentId, string ipfsHash, uint256 commitDeadline, uint256 revealDeadline);
+    event ContentSubmitted(uint256 indexed contentId, string ipfsHash, uint256 commitDeadline, uint256 revealDeadline, address indexed creator);
     event MultiTokenVoteCommitted(uint256 indexed contentId, address indexed voter, TokenType tokenType, uint256 stakeAmount, uint256 usdValue);
     event MultiTokenVoteRevealed(uint256 indexed contentId, address indexed voter, VoteOption vote, uint256 confidence, uint256 quadraticWeight);
     event VotingFinalized(uint256 indexed contentId, VoteOption winningOption, uint256 totalParticipants, uint256 totalUSDStaked);
@@ -364,7 +364,7 @@ contract ProofChainMultiTokenVoting is ReentrancyGuard, Ownable {
         item.isActive = true;
         item.voteDistribution = new uint256[](3); // [real, fake, ai]
         
-        emit ContentSubmitted(contentId, ipfsHash, item.commitDeadline, item.revealDeadline);
+        emit ContentSubmitted(contentId, ipfsHash, item.commitDeadline, item.revealDeadline, msg.sender);
         return contentId;
     }
     

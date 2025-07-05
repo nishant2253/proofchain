@@ -20,7 +20,7 @@ const contractABI = [
   "function convertToUSD(uint8 tokenType, uint256 tokenAmount) public view returns (uint256)",
   "function calculateQuadraticWeightUSD(uint256 usdValue) public pure returns (uint256)",
   "function isVerifiedIdentity(address user, bytes32[] calldata merkleProof) public view returns (bool)",
-  "event ContentSubmitted(uint256 indexed contentId, string ipfsHash, uint256 commitDeadline, uint256 revealDeadline)",
+  "event ContentSubmitted(uint256 indexed contentId, string ipfsHash, uint256 commitDeadline, uint256 revealDeadline, address indexed creator)",
   "event MultiTokenVoteCommitted(uint256 indexed contentId, address indexed voter, uint8 tokenType, uint256 stakeAmount, uint256 usdValue)",
   "event MultiTokenVoteRevealed(uint256 indexed contentId, address indexed voter, uint8 vote, uint256 confidence, uint256 quadraticWeight)",
   "event VotingFinalized(uint256 indexed contentId, uint8 winningOption, uint256 totalParticipants, uint256 totalUSDStaked)",
@@ -129,14 +129,14 @@ const initializeEventListeners = async () => {
 
           if (!existingContent) {
             const newContent = new ContentItem({
-              contentId: contentIdStr,
-              ipfsHash,
-              commitDeadline: new Date(commitDeadline.toNumber() * 1000),
-              revealDeadline: new Date(revealDeadline.toNumber() * 1000),
-              title: `Content #${contentIdStr}`,
-              creator: event.args[1],
-              transactionHash: event.transactionHash,
-            });
+            contentId: contentIdStr,
+            ipfsHash,
+            commitDeadline: new Date(commitDeadline.toNumber() * 1000),
+            revealDeadline: new Date(revealDeadline.toNumber() * 1000),
+            title: `Content #${contentIdStr}`,
+            creator: event.args.creator,
+            transactionHash: event.transactionHash,
+          });
 
             await newContent.save();
             await clearCacheByPattern("content:list:*");
