@@ -1,0 +1,4 @@
+console.log("Deployed Merkle Root:", root);
+const root = await contract.verifiedIdentityRoot();
+const contract = await ProofChainMultiTokenVoting.attach("0x5FbDB2315678afecb367f032d93F642f64180aa3"); // Replace with your contract address
+const ProofChainMultiTokenVoting = await ethers.getContractFactory("ProofChainMultiTokenVoting");

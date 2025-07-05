@@ -90,6 +90,14 @@ npm install
 npm run dev
 ```
 
+### Database Management
+
+To clear all existing data from the MongoDB database (useful for development and testing):
+
+```bash
+node scripts/flushDb.js
+```
+
 ## Blockchain Integration
 
 The backend integrates with the ProofChainMultiTokenVoting smart contract through the following mechanisms:

@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "/home/nishant/proofchain/contracts-hardhat/contracts/ProofChainMultiTokenVoting.sol": {
-      "lastModificationDate": 1751727838439,
-      "contentHash": "ebaed7ccad6ff66851f5ce8fb08b224f",
+      "lastModificationDate": 1751732840781,
+      "contentHash": "6521938adf7b13e1f94a44c6fdfecdbd",
       "sourceName": "contracts/ProofChainMultiTokenVoting.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -217,6 +217,42 @@
       ],
       "artifacts": [
         "Context"
+      ]
+    },
+    "/home/nishant/proofchain/contracts-hardhat/contracts/MockAggregatorV3.sol": {
+      "lastModificationDate": 1751732787581,
+      "contentHash": "95eb9d7df625a401b8cc8b23be156bf5",
+      "sourceName": "contracts/MockAggregatorV3.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "AggregatorV3Interface",
+        "MockAggregatorV3"
       ]
     }
   }

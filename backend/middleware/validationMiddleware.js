@@ -92,6 +92,7 @@ const schemas = {
     tokenType: Joi.number().integer().min(0).max(7).required(),
     stakeAmount: Joi.string().required(),
     merkleProof: Joi.array().items(Joi.string()).required(),
+    transactionHash: Joi.string().required(),
   }),
 
   revealVote: Joi.object({

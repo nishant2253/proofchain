@@ -119,6 +119,15 @@ npm start
 
 8. Access the application at `http://localhost:3000`
 
+### Database Management
+
+To clear all data from the MongoDB database (useful for development and testing):
+
+```bash
+cd backend
+node scripts/flushDb.js
+```
+
 ## 🔗 Blockchain Integration
 
 ProofChain integrates with Ethereum blockchain through the `ProofChainMultiTokenVoting` smart contract.

@@ -631,7 +631,7 @@ contract ProofChainMultiTokenVoting is ReentrancyGuard, Ownable {
         uint256 bonusMultiplier,
         uint256 minStakeAmount
     ) external onlyOwner {
-        require(tokenAddress != address(0), "Invalid token address");
+        require(tokenAddress != address(0) || tokenType == TokenType.ETH, "Invalid token address");
         require(priceOracleAddress != address(0), "Invalid price oracle address");
         
         supportedTokens[tokenType] = SupportedToken({

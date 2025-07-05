@@ -2,91 +2,209 @@
 
 ## Initial Setup
 
-### Step 1: Start the Backend Server
+This section guides you through setting up and starting all components of the ProofChain application (blockchain, backend, and frontend).
 
-1. Open a terminal window
-2. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-3. Install dependencies if not already done:
-   ```bash
-   npm install
-   ```
-4. Start the backend server:
-   ```bash
-   npm start
-   ```
-5. Verify that you see messages indicating:
-   - Server running on port 3000
-   - MongoDB connection established
-   - Redis connection (if enabled)
-   - Blockchain services initialization
-6. Delete the Mongoose data if already exist otherwise harhat node will give erro
+### Prerequisites
 
-### Step 2: Start the Frontend Server
+Before you begin, ensure you have the following installed:
 
-1. Open a new terminal window
-2. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-3. Install dependencies if not already done:
-   ```bash
-   npm install
-   ```
-4. Start the frontend development server:
-   ```bash
-   npm start
-   ```
-5. The frontend will start on port 5003
+- **Node.js** (v18 or higher recommended)
+- **npm** (Node Package Manager, usually comes with Node.js)
+- **MetaMask** browser extension
 
-### Step 3: Deploy Smart Contract (if not already deployed)
+### Step 1: Install Dependencies
 
-1. Open a new terminal window
-2. Navigate to the contracts-hardhat directory:
-   ```bash
-   cd contracts-hardhat
-   ```
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-4. Start a local Hardhat node:
-   ```bash
-   npx hardhat node
-   ```
-5. In a separate terminal, deploy the contract:
-   ```bash
-   cd contracts-hardhat
-   npx hardhat run scripts/deploy.js --network localhost
-   ```
-6. Note the deployed contract address for configuration
-7. Update the contract address in the backend .env file:
-   ```bash
-   cd ../backend
-   # Edit .env file and replace CONTRACT_ADDRESS with the new address
-   # Example: CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
-   ```
-8. Update the contract address in the frontend .env file:
-   ```bash
-   cd ../frontend
-   # Edit .env file and replace REACT_APP_CONTRACT_ADDRESS with the new address
-   # Example: REACT_APP_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
-   ```
-9. Restart both backend and frontend servers to apply the changes:
+Open **three separate terminal windows**. You will use one for `contracts-hardhat`, one for `backend`, and one for `frontend`.
 
-   ```bash
-   # In backend terminal
-   npm restart
+**In each terminal**, navigate to the respective directory and install dependencies:
 
-   # In frontend terminal
-   npm start
-   ```
+**Terminal 1 (contracts-hardhat):**
 
-10. Use the hardhat node private key(out of any 10 accounts) and add private key in metamask and
-    copy the metamask account private key and replace with DEMO_PRIVATE_KEY in .env for backend
-    and PRIVATE_KEY in contracts-hardhat .env file
+```bash
+cd /home/nishant/proofchain/contracts-hardhat
+npm install
+```
+
+**Terminal 2 (backend):**
+
+```bash
+cd /home/nishant/proofchain/backend
+npm install
+```
+
+**Terminal 3 (frontend):**
+
+```bash
+cd /home/nishant/proofchain/frontend
+npm install
+```
+
+### Step 2: Create .env Files
+
+For each component, create a `.env` file by copying its `.env.example` counterpart. These files are crucial for configuration and are ignored by Git for security.
+
+**Terminal 1 (contracts-hardhat):**
+
+```bash
+cd /home/nishant/proofchain/contracts-hardhat
+cp .env.example .env
+```
+
+**Terminal 2 (backend):**
+
+```bash
+cd /home/nishant/proofchain/backend
+cp .env.example .env
+```
+
+**Terminal 3 (frontend):**
+
+```bash
+cd /home/nishant/proofchain/frontend
+cp .env.example .env
+```
+
+### Step 3: Start the Hardhat Local Blockchain Node
+
+This node simulates the Ethereum blockchain locally and must be running for the other components to interact with the smart contracts.
+
+**In Terminal 1 (contracts-hardhat):**
+
+```bash
+npx hardhat node
+```
+
+- **Important:** Keep this terminal open and running. If you close it, the blockchain state will reset, and you'll need to redeploy contracts and reactivate tokens.
+- You will see a list of 20 accounts with their private keys. **Note down the private key for `Account #2` (`0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC`)**. You will need this for MetaMask and for the backend's `DEMO_PRIVATE_KEY`.
+- You might see `eth_chainId` and `eth_blockNumber` logs; these are normal and indicate activity.
+- If you get an `EADDRINUSE` error, another process is using port `8545`. Find and terminate that process, then try again.
+
+### Step 4: Deploy Smart Contracts and Activate ETH Token
+
+After starting the Hardhat node, you need to deploy your smart contracts and configure the supported tokens.
+
+**In a NEW Terminal Window** (do NOT close Terminal 1 where Hardhat node is running):
+
+1.  Navigate to the `contracts-hardhat` directory:
+
+    ```bash
+    cd /home/nishant/proofchain/contracts-hardhat
+    ```
+
+2.  **Generate Merkle Root and Proof:**
+    We need a Merkle root for the `ProofChainMultiTokenVoting` contract and a Merkle proof for the MetaMask account you'll use.
+
+    ```bash
+    npx hardhat run scripts/generateMerkleData.js --network localhost
+    ```
+
+    - **Output:** This will print the `Merkle Root` and the `Target Merkle Proof` for `Account #2`. **Copy these values.**
+
+3.  **Update `contracts-hardhat/.env` with Merkle Root:**
+    Open `/home/nishant/proofchain/contracts-hardhat/.env` and update the `MERKLE_ROOT` with the value you just copied.
+
+    ```
+    # Example for contracts-hardhat/.env
+    MERKLE_ROOT=0x55e8063f883b9381398d8fef6fbae371817e8e4808a33a4145b8e3cdd65e3926
+    ```
+
+4.  **Deploy `ProofChainMultiTokenVoting` Contract:**
+
+    ```bash
+    npx hardhat run scripts/deploy.js --network localhost
+    ```
+
+    - **Note the deployed address:** This is your `ProofChainMultiTokenVoting` contract address. It should be `0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0`. **Copy this address.**
+
+5.  **Deploy `MockAggregatorV3` (Price Oracle):**
+
+    ```bash
+    npx hardhat run scripts/deployMockAggregator.js --network localhost
+    ```
+
+    - **Note the deployed address:** This is the address of your mock ETH price oracle. It should be `0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9`. **Copy this address.**
+
+6.  **Update `contracts-hardhat/.env` with Contract Addresses:**
+    Open `/home/nishant/proofchain/contracts-hardhat/.env` and update the `PROOFCHAIN_CONTRACT_ADDRESS` and `MOCK_AGGREGATOR_ADDRESS` with the values you just copied.
+
+    ```
+    # Example for contracts-hardhat/.env
+    PROOFCHAIN_CONTRACT_ADDRESS=0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+    MOCK_AGGREGATOR_ADDRESS=0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9
+    ```
+
+7.  **Activate ETH Token in `ProofChainMultiTokenVoting`:**
+    ```bash
+    npx hardhat run scripts/activateEthToken.js --network localhost
+    ```
+    - You should see "ETH token activated successfully!"
+
+### Step 5: Update Environment Variables in Backend and Frontend (Crucial Manual Step)
+
+Now, you need to manually update the `.env` files for your backend and frontend with the correct contract addresses and Merkle proof.
+
+1.  **Update `backend/.env`:**
+    Open `/home/nishant/proofchain/backend/.env` and update the following:
+
+    ```
+    # Example for backend/.env
+    CONTRACT_ADDRESS=0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0  # From Step 4.4
+    DEMO_PRIVATE_KEY=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a # Private Key for Account #2 from Hardhat node startup (Step 3)
+    ```
+
+2.  **Update `frontend/.env`:**
+    Open `/home/nishant/proofchain/frontend/.env` and update the following:
+
+    ```
+    # Example for frontend/.env
+    REACT_APP_CONTRACT_ADDRESS=0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0 # From Step 4.4
+    REACT_APP_MERKLE_PROOF=["0x070e8db97b197cc0e4a1790c5e6c3667bab32d733db7f815fbe84f5824c7168d"] # From Step 4.2 (ensure it's a JSON string)
+    ```
+
+### Step 6: Start the Backend Server
+
+**In Terminal 2 (backend):**
+
+```bash
+npm start
+```
+
+- If you get an `EADDRINUSE` error, another process is using port `3000`. Find and terminate that process, then try again.
+
+### Step 7: Start the Frontend Development Server
+
+**In Terminal 3 (frontend):**
+
+```bash
+npm start
+```
+
+- If you get an `EADDRINUSE` error, another process is using port `5003`. Find and terminate that process, then try again.
+
+### Step 8: Configure MetaMask
+
+1.  **Add Hardhat Network to MetaMask:**
+
+    - Open MetaMask.
+    - Click the network dropdown (usually "Ethereum Mainnet").
+    - Select "Add Network" -> "Add a network manually".
+    - Fill in the details:
+      - **Network Name:** `Hardhat Localhost`
+      - **New RPC URL:** `http://127.0.0.1:8545`
+      - **Chain ID:** `31337`
+      - **Currency Symbol:** `ETH`
+      - **Block Explorer URL (Optional):** Leave blank
+    - Click "Save".
+
+2.  **Import Hardhat Account into MetaMask:**
+    - In MetaMask, ensure you are on the "Hardhat Localhost" network.
+    - Click the circular icon in the top right (your account icon).
+    - Select "Import Account".
+    - Choose "Private Key" and paste the private key for **Hardhat Account #2** (`0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC`) from your Hardhat node's initial startup output (Step 3).
+      - **Private Key for Account #2:** `0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a`
+    - Click "Import".
+
+Now, all components should be running, and your MetaMask should be configured to interact with your local development environment. You should be able to commit votes using ETH.
 
 ## User Journey
 
@@ -220,3 +338,12 @@
    - Key metrics including total votes and consensus rate
 
 This comprehensive guide covers the entire user journey from setting up the application to participating in the full voting cycle and checking results.
+
+### Database Management
+
+To clear all existing data from the MongoDB database (useful for development and testing):
+
+```bash
+    cd backend/
+    node scripts/flushDb.js
+```

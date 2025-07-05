@@ -3,10 +3,8 @@
 const hre = require("hardhat");
 
 async function main() {
-  // Default merkle root if not provided in environment
-  const defaultMerkleRoot =
-    "0x0000000000000000000000000000000000000000000000000000000000000000";
-  const merkleRoot = process.env.MERKLE_ROOT || defaultMerkleRoot;
+  // Default merkle root for the contract deployment
+  const merkleRoot = process.env.MERKLE_ROOT;
 
   console.log("Deploying ProofChainMultiTokenVoting contract...");
   console.log(`Using merkle root: ${merkleRoot}`);

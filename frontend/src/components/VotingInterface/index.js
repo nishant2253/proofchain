@@ -2,7 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import useWallet from "../../hooks/useWallet";
 import { getSupportedTokens, submitVote, getVoteStatus } from "../../utils/api";
-import { generateCommitHash, generateRandomSalt, getContract } from "../../utils/blockchain";
+import {
+  generateCommitHash,
+  generateRandomSalt,
+  getContract,
+} from "../../utils/blockchain";
 import {
   parseErrorMessage,
   formatDate,
@@ -209,10 +213,13 @@ const VotingInterface = ({ content, onVoteComplete }) => {
         tokenType
       );
 
-      // Mock merkleProof for development (or use real one if available)
-      const merkleProof = [
-        "0x0000000000000000000000000000000000000000000000000000000000000000",
-      ];
+      console.log(
+        "Raw REACT_APP_MERKLE_PROOF:",
+        process.env.REACT_APP_MERKLE_PROOF
+      );
+      const merkleProof = JSON.parse(
+        process.env.REACT_APP_MERKLE_PROOF || "[]"
+      );
 
       // Convert stakeAmount to BigNumber based on token decimals
       const stakeAmountWei = ethers.utils.parseUnits(
